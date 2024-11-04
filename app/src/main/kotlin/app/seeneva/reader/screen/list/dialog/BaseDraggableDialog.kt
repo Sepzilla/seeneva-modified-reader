@@ -20,22 +20,24 @@ package app.seeneva.reader.screen.list.dialog
 
 import android.os.Bundle
 import android.view.View
+import androidx.annotation.LayoutRes
 import app.seeneva.reader.R
-import app.seeneva.reader.extension.setDraggableBackground
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.R as MaterialR
 
 abstract class BaseDraggableDialog : BottomSheetDialogFragment {
     constructor() : super()
-    constructor(contentLayoutId: Int) : super(contentLayoutId)
+    constructor(@LayoutRes contentLayoutId: Int) : super(contentLayoutId)
 
     private val bottomSheetBehavior by lazy {
         requireDialog().findViewById<View>(MaterialR.id.design_bottom_sheet)
             .let { BottomSheetBehavior.from(it) }
     }
 
-    init {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
         setStyle(STYLE_NORMAL, R.style.AppTheme_BottomSheetDialog_NonCollapsed)
     }
 
@@ -44,7 +46,5 @@ abstract class BaseDraggableDialog : BottomSheetDialogFragment {
         if (savedInstanceState == null) {
             bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
-
-        view.setDraggableBackground()
     }
 }

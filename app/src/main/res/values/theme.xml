@@ -46,7 +46,7 @@
 
     <style name="AppTheme.Viewer" parent="BaseAppTheme.Viewer" />
 
-    <style name="AppTheme.BottomSheetDialog" parent="Theme.MaterialComponents.Light.BottomSheetDialog" />
+    <style name="AppTheme.BottomSheetDialog" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog" />
 
     <style name="AppTheme.BottomSheetDialog.NonCollapsed">
         <item name="bottomSheetStyle">@style/AppWidget.BottomSheet.NonCollapsed</item>

@@ -18,7 +18,6 @@
 
 package app.seeneva.reader.screen.list.dialog.info
 
-import android.app.Dialog
 import android.net.Uri
 import android.os.Bundle
 import android.text.util.Linkify
@@ -81,8 +80,18 @@ class ComicInfoFragment :
             .let { BottomSheetBehavior.from(it) }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        if (savedInstanceState == null) {
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+        }
+
+        viewBinding.toolbar.also {
+            it.setNavigationOnClickListener { dismiss() }
+
+            it.subtitle = bookName
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             presenter.comicInfoState
@@ -110,23 +119,6 @@ class ComicInfoFragment :
                         }
                     }
                 }
-        }
-    }
-
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        if (savedInstanceState == null) {
-            bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
-        }
-        return super.onCreateDialog(savedInstanceState)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        viewBinding.toolbar.also {
-            it.setNavigationOnClickListener { dismiss() }
-
-            it.subtitle = bookName
         }
     }
 
