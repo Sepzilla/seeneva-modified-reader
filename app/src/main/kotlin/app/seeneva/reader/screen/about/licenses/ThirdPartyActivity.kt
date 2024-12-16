@@ -26,9 +26,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import app.seeneva.reader.R
-import app.seeneva.reader.binding.config
-import app.seeneva.reader.binding.doOnDestroy
-import app.seeneva.reader.binding.getValue
 import app.seeneva.reader.binding.viewBinding
 import app.seeneva.reader.databinding.ActivityThirdPartiesBinding
 import app.seeneva.reader.di.autoInit
@@ -48,9 +45,11 @@ class ThirdPartyActivity :
     ThirdPartyView,
     KoinScopeComponent,
     AndroidScopeComponent {
-    private val viewBinding by viewBinding(config(ActivityThirdPartiesBinding::bind) doOnDestroy {
-        recyclerView.adapter = null
-    })
+    private val viewBinding by lazy(LazyThreadSafetyMode.NONE) {
+        viewBinding(
+            ActivityThirdPartiesBinding::bind
+        )
+    }
 
     private val lifecycleKoinScope = koinLifecycleScope()
 
@@ -112,6 +111,11 @@ class ThirdPartyActivity :
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        viewBinding.recyclerView.adapter = null
     }
 
     override fun supportNavigateUpTo(upIntent: Intent) {

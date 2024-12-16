@@ -24,14 +24,12 @@ import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
-import android.view.*
+import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.activity.result.ActivityResultCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.view.ActionMode
-import androidx.appcompat.widget.SearchView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.*
@@ -51,9 +49,6 @@ import app.seeneva.reader.R
 import app.seeneva.reader.binding.getValue
 import app.seeneva.reader.binding.viewBinding
 import app.seeneva.reader.databinding.FragmentComicListBinding
-import app.seeneva.reader.di.autoInit
-import app.seeneva.reader.di.getValue
-import app.seeneva.reader.di.koinLifecycleScope
 import app.seeneva.reader.extension.humanDescriptionShort
 import app.seeneva.reader.extension.success
 import app.seeneva.reader.logic.ComicListViewType
@@ -76,6 +71,7 @@ import app.seeneva.reader.screen.list.entity.FilterLabel
 import app.seeneva.reader.screen.list.selection.ComicDetailsLookup
 import app.seeneva.reader.screen.list.selection.ComicKeyProvider
 import app.seeneva.reader.screen.list.selection.ComicSelectionActionModeObserver
+import app.seeneva.reader.ui.screen.library.LibraryAction
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
@@ -83,7 +79,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import org.koin.android.scope.AndroidScopeComponent
+import org.koin.androidx.scope.fragmentScope
 import org.koin.core.component.KoinScopeComponent
+import org.koin.core.component.inject
 import org.koin.core.scope.Scope
 import java.util.ArrayDeque
 import kotlin.math.roundToInt
@@ -159,14 +157,7 @@ interface ComicsListView : PresenterStatefulView {
     }
 }
 
-/**
- * @param _searchView inflated search view
- * @param expandAppBar called to expand [AppBarLayout] if any
- */
-class ComicsListFragment(
-    _searchView: Lazy<SearchView>,
-    private val expandAppBar: () -> Unit = {}
-) : Fragment(R.layout.fragment_comic_list),
+class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
     ComicsListView,
     ComicsSortDialog.Callback,
     ComicRenameDialog.Callback,
@@ -176,21 +167,19 @@ class ComicsListFragment(
     AndroidScopeComponent {
     private val viewBinding by viewBinding(FragmentComicListBinding::bind)
 
-    private val searchView by _searchView
+    //private val searchView by _searchView
 
-    private val lifecycleScope = koinLifecycleScope()
+    override val scope: Scope by fragmentScope()
 
-    override val scope: Scope by lifecycleScope
+    private val presenter by inject<ComicsListPresenter>()
 
-    private val presenter by lifecycleScope.autoInit<ComicsListPresenter>()
-
-    private val router by lifecycleScope.autoInit<ComicListRouter>()
+    private val router by inject<ComicListRouter>()
 
     private val gridSpanCount by lazy { resources.getInteger(R.integer.comic_thumb_grid_size) }
 
     private val allListTypes = ArrayDeque(ComicListViewType.entries)
 
-    private var currentListType: ComicListViewType by Delegates.observable(ComicListViewType.default) { _, oldType, newType ->
+    var currentListType: ComicListViewType by Delegates.observable(ComicListViewType.default) { _, oldType, newType ->
         if (oldType == newType) {
             return@observable
         }
@@ -209,7 +198,7 @@ class ComicsListFragment(
 
         listAdapter.setComicViewType(newType)
 
-        requireActivity().invalidateOptionsMenu()
+        invalidateMenuActions()
     }
 
     private val listLayoutManager by lazy { GridLayoutManager(requireContext(), gridSpanCount) }
@@ -307,6 +296,13 @@ class ComicsListFragment(
      */
     private val currentListScreenState = MutableStateFlow(ScreenState.STATE_EMPTY)
 
+    private val menuActionsInner = MutableStateFlow<List<LibraryAction>>(emptyList())
+
+    /**
+     * Flow of currently visible menu items
+     */
+    val menuActions = menuActionsInner.asStateFlow()
+
     /**
      * Current sync state
      */
@@ -331,7 +327,7 @@ class ComicsListFragment(
         }
 
         //need to update options menu
-        requireActivity().invalidateOptionsMenu()
+        invalidateMenuActions()
     }
 
     private val notificationPermissionCallback = object : ActivityResultCallback<Boolean> {
@@ -357,77 +353,6 @@ class ComicsListFragment(
         }
     }
 
-    private val menuProvider = object : MenuProvider {
-        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-            menuInflater.inflate(R.menu.comics_list, menu)
-        }
-
-        override fun onPrepareMenu(menu: Menu) {
-            super.onPrepareMenu(menu)
-
-            if (currentListScreenState.value.menuEnabled) {
-                with(menu.findItem(R.id.list_view)) {
-                    val iconResId: Int
-                    val titleResId: Int
-
-                    when (currentListType) {
-                        ComicListViewType.GRID -> {
-                            iconResId = R.drawable.ic_round_view_list_24dp
-                            titleResId = R.string.comic_list_as_list
-                        }
-
-                        ComicListViewType.LIST -> {
-                            iconResId = R.drawable.ic_round_view_module_24dp
-                            titleResId = R.string.comic_list_as_grid
-                        }
-                    }
-
-                    icon = AppCompatResources.getDrawable(requireContext(), iconResId)
-                    setTitle(titleResId)
-                }
-
-                with(menu.findItem(R.id.sync)) {
-                    isEnabled = currentSyncState == ComicsListView.SyncState.IDLE
-                }
-            } else {
-                menu.forEach {
-                    it.isVisible = it.itemId == R.id.add
-                }
-            }
-        }
-
-        override fun onMenuItemSelected(menuItem: MenuItem): Boolean =
-            when (menuItem.itemId) {
-                R.id.add -> {
-                    onAddComicBookClick()
-                    true
-                }
-
-                R.id.sort -> {
-                    presenter.onSortListClick()
-                    true
-                }
-
-                R.id.list_view -> {
-                    nextComicListType()
-                    true
-                }
-
-                R.id.filter -> {
-                    presenter.onEditFilterClick()
-                    true
-                }
-
-                R.id.sync -> {
-                    presenter.onSyncClick()
-                    true
-                }
-
-                else ->
-                    false
-            }
-    }
-
     /**
      * Launch notification permission request dialog
      */
@@ -439,20 +364,18 @@ class ComicsListFragment(
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        requireActivity().addMenuProvider(menuProvider, viewLifecycleOwner, Lifecycle.State.RESUMED)
-
-        searchView.setOnCloseListener { true }
-
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String): Boolean {
-                return true
-            }
-
-            override fun onQueryTextChange(newText: String): Boolean {
-                presenter.onSearchQuery(newText)
-                return true
-            }
-        })
+//        searchView.setOnCloseListener { true }
+//
+//        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+//            override fun onQueryTextSubmit(query: String): Boolean {
+//                return true
+//            }
+//
+//            override fun onQueryTextChange(newText: String): Boolean {
+//                presenter.onSearchQuery(newText)
+//                return true
+//            }
+//        })
 
         with(viewBinding.swipeSyncView) {
             setColorSchemeResources(R.color.deep_purple_400)
@@ -497,27 +420,29 @@ class ComicsListFragment(
                             else -> {
                                 // disable scrolling and force show AppBarLayout
                                 viewBinding.recyclerView.suppressLayout(true)
-                                expandAppBar()
+                                //TODO
+                                //expandAppBar()
                             }
                         }
 
                         showCurrentState()
 
-                        searchView.also { searchView ->
-                            fun setViewEnabled(v: View, enabled: Boolean) {
-                                if (v is ViewGroup) {
-                                    v.forEach {
-                                        setViewEnabled(it, enabled)
-                                    }
-                                }
-                                v.isEnabled = enabled
-                            }
+                        //TODO
+//                        searchView.also { searchView ->
+//                            fun setViewEnabled(v: View, enabled: Boolean) {
+//                                if (v is ViewGroup) {
+//                                    v.forEach {
+//                                        setViewEnabled(it, enabled)
+//                                    }
+//                                }
+//                                v.isEnabled = enabled
+//                            }
+//
+//                            //need to change enabled state of all children
+//                            setViewEnabled(searchView, newState.menuEnabled)
+//                        }
 
-                            //need to change enabled state of all children
-                            setViewEnabled(searchView, newState.menuEnabled)
-                        }
-
-                        requireActivity().invalidateOptionsMenu()
+                        invalidateMenuActions()
                     }
                 }
 
@@ -598,9 +523,10 @@ class ComicsListFragment(
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Clean listeners
-        searchView.setOnCloseListener(null)
-        searchView.setOnQueryTextListener(null)
+        //TODO
+//        // Clean listeners
+//        searchView.setOnCloseListener(null)
+//        searchView.setOnQueryTextListener(null)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -759,8 +685,32 @@ class ComicsListFragment(
         currentSyncState = state
     }
 
-    private fun onAddComicBookClick() {
+    /**
+     * On add a new comic book click
+     */
+    fun onAddComicBookClick() {
         AddModeSelectorDialog.newInstance().show(childFragmentManager, TAG_ADD_MODE_SELECTOR)
+    }
+
+    /**
+     * On sort library items click
+     */
+    fun onSortClick() {
+        presenter.onSortListClick()
+    }
+
+    /**
+     * On filter library items click
+     */
+    fun onFilterClick() {
+        presenter.onEditFilterClick()
+    }
+
+    /**
+     * On sync library items click
+     */
+    fun onSyncClick() {
+        presenter.onSyncClick()
     }
 
     private fun nextComicListType() {
@@ -796,6 +746,31 @@ class ComicsListFragment(
             )
 
             ScreenState.STATE_LOADING -> viewBinding.contentMessageView.showLoading()
+        }
+    }
+
+    /**
+     * Invalidate list of the menu actions
+     */
+    private fun invalidateMenuActions() {
+        menuActionsInner.value = if (currentListScreenState.value.menuEnabled) {
+            buildList {
+                add(
+                    when (currentListType) {
+                        ComicListViewType.GRID ->
+                            LibraryAction.ListView
+
+                        ComicListViewType.LIST -> {
+                            LibraryAction.GridView
+                        }
+                    }
+                )
+                add(LibraryAction.Sort)
+                add(LibraryAction.Filter)
+                add(LibraryAction.Sync(enabled = currentSyncState == ComicsListView.SyncState.IDLE))
+            }
+        } else {
+            emptyList()
         }
     }
 

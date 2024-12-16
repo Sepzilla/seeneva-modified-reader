@@ -37,8 +37,6 @@ import androidx.lifecycle.*
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.widget.ViewPager2
 import app.seeneva.reader.R
-import app.seeneva.reader.binding.configCustom
-import app.seeneva.reader.binding.getValue
 import app.seeneva.reader.binding.viewBinding
 import app.seeneva.reader.databinding.ActivityBookViewerBinding
 import app.seeneva.reader.databinding.LayoutViewerStatesBinding
@@ -113,13 +111,17 @@ class BookViewerActivity :
     BookViewerPageFragment.Callback,
     KoinScopeComponent,
     AndroidScopeComponent {
-    private val viewBinding by viewBinding(ActivityBookViewerBinding::bind)
+    private val viewBinding by lazy(LazyThreadSafetyMode.NONE) {
+        viewBinding(
+            ActivityBookViewerBinding::bind
+        )
+    }
 
-    private val viewerStatesBinding by viewBinding(configCustom {
+    private val viewerStatesBinding by lazy(LazyThreadSafetyMode.NONE) {
         LayoutViewerStatesBinding.bind(
             viewBinding.viewerStatesLayout
         )
-    })
+    }
 
     private val lifecycleScope = koinLifecycleScope {
         // Create retainScope and link it to Activity scope

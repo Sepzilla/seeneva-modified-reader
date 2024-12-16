@@ -19,13 +19,13 @@
 
 <resources>
 
-    <style name="AppWidget.Toolbar.Primary" parent="Widget.MaterialComponents.Toolbar.Primary">
+    <style name="AppWidget.Toolbar.Primary" parent="Widget.Material3.Toolbar">
         <!-- https://material.io/blog/android-stable-release-1-2 -->
         <!-- It will help to set navigation icon tint color -->
         <item name="materialThemeOverlay">@style/AppOverlay.Toolbar.Primary</item>
     </style>
 
-    <style name="AppOverlay.Toolbar.Primary" parent="ThemeOverlay.MaterialComponents.Toolbar.Primary">
+    <style name="AppOverlay.Toolbar.Primary" parent="Widget.Material3.Toolbar">
         <item name="toolbarNavigationButtonStyle">@style/AppWidget.ToolbarNavigation</item>
     </style>
 
@@ -33,7 +33,7 @@
         <item name="tint">?attr/colorControlNormal</item>
     </style>
 
-    <style name="AppWidget.Slider" parent="Widget.MaterialComponents.Slider">
+    <style name="AppWidget.Slider" parent="Widget.Material3.Slider">
         <item name="materialThemeOverlay">@style/AppOverlay.Slider</item>
     </style>
 
@@ -41,7 +41,7 @@
         <item name="colorPrimary">@color/deep_purple_400</item>
     </style>
 
-    <style name="AppWidget.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal" />
+    <style name="AppWidget.BottomSheet" parent="Widget.Material3.BottomSheet.Modal" />
 
     <style name="AppWidget.BottomSheet.NonCollapsed">
         <item name="shapeAppearanceOverlay">@style/AppShapeOverlay.DraggableBottomSheet</item>

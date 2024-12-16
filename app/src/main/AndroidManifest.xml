@@ -57,7 +57,7 @@
         android:theme="@style/AppTheme"
         tools:targetApi="s">
         <activity
-            android:name="app.seeneva.reader.screen.MainActivity"
+            android:name=".ui.ComposeMainActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustNothing">
             <intent-filter>

@@ -18,10 +18,10 @@
 
 package app.seeneva.reader.binding
 
+import android.app.Activity
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
-import androidx.activity.ComponentActivity
 import androidx.core.view.get
 import androidx.core.view.isNotEmpty
 import androidx.fragment.app.Fragment
@@ -87,18 +87,6 @@ private class LifecycleBindingDelegate<B : ViewBinding>(
 }
 
 /**
- * Default [ComponentActivity]'s ViewBinding delegate
- */
-fun <B : ViewBinding> ComponentActivity.viewBinding(onInitBinding: (View) -> B): BindingDelegate<B> =
-    viewBinding(config(onInitBinding))
-
-/**
- * Configurable [ComponentActivity]'s ViewBinding delegate
- */
-fun <B : ViewBinding> ComponentActivity.viewBinding(config: ViewBindingConfig<B>): BindingDelegate<B> =
-    LifecycleBindingDelegate({ lifecycle }, config.onInitBinding, config.onDestroy)
-
-/**
  * Default [Fragment]'s ViewBinding delegate
  */
 fun <B : ViewBinding> Fragment.viewBinding(onInitBinding: (View) -> B): BindingDelegate<B> =
@@ -115,23 +103,6 @@ fun <B : ViewBinding> Fragment.viewBinding(
         config.onInitBinding,
         config.onDestroy
     )
-
-/**
- * [ComponentActivity]'s ViewBinding delegate config
- * @param onInitBinding init binding from provided [View] instance
- * @return config for ViewBinding delegate
- */
-fun <B : ViewBinding> ComponentActivity.config(onInitBinding: (View) -> B): ViewBindingConfig<B> =
-    ViewBindingConfigInner {
-        val contentView = findViewById<View>(Window.ID_ANDROID_CONTENT)
-
-        onInitBinding(
-            when {
-                contentView is ViewGroup && contentView.isNotEmpty() -> contentView[0]
-                else -> contentView
-            }
-        )
-    }
 
 /**
  * [Fragment]'s ViewBinding delegate config
@@ -167,4 +138,20 @@ interface ViewBindingConfig<B : ViewBinding> {
 private class ViewBindingConfigInner<B : ViewBinding>(override val onInitBinding: () -> B) :
     ViewBindingConfig<B> {
     override var onDestroy: B.() -> Unit = {}
+}
+
+/**
+ * Create a new ViewBinding for the Activity
+ *
+ * @param bind view binding's bind function
+ *
+ * @return a new ViewBinding
+ */
+fun <T : ViewBinding> Activity.viewBinding(bind: (View) -> T): T {
+    val contentView = findViewById<View>(Window.ID_ANDROID_CONTENT)
+
+    return when {
+        contentView is ViewGroup && contentView.isNotEmpty() -> contentView[0]
+        else -> contentView
+    }.let(bind)
 }

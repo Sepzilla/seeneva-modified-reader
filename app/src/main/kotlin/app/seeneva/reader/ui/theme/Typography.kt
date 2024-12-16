@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021-2024 Sergei Solodovnikov
+ * Copyright (C) 2024 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,15 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-plugins {
-    alias(libs.plugins.kotlin.serialization) apply false
-    alias(libs.plugins.ksp) apply false
-    alias(libs.plugins.compose.compiler) apply false
-}
+package app.seeneva.reader.ui.theme
 
-allprojects {
-    // we will use ViewPager2, so remove ViewPager dependency globally
-    configurations.configureEach {
-        exclude(group = "androidx.viewpager")
-    }
-}
+import androidx.compose.material3.Typography
+
+/**
+ * Base app typography
+ */
+val SeenevaTypography = Typography()

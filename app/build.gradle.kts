@@ -26,6 +26,8 @@ import extension.signProperties
 
 plugins {
     id("seeneva.android-application-conventions")
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // True if this build is running in CI
@@ -35,6 +37,7 @@ android {
     buildFeatures {
         buildConfig = true
         viewBinding = true
+        compose = true
     }
 
     androidResources {
@@ -153,15 +156,17 @@ dependencies {
     implementation(project(":logic"))
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.androidx.core)
     implementation(libs.androidx.annotations)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.activity)
+    implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.viewpager)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.recyclerview.selection)
     implementation(libs.androidx.fragment)
+    implementation(libs.androidx.fragment.compose)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.lifecycle.viewmodel)
@@ -171,8 +176,15 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.swipeRefreshLayout)
+    implementation(libs.androidx.navigation.compose)
+
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(platform(libs.koin.bom))
+    implementation(libs.koin.compose)
     implementation(libs.koin.android)
     implementation(libs.koin.android.workmanager)
 
