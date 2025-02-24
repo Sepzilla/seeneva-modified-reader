@@ -71,6 +71,7 @@ import app.seeneva.reader.screen.list.entity.FilterLabel
 import app.seeneva.reader.screen.list.selection.ComicDetailsLookup
 import app.seeneva.reader.screen.list.selection.ComicKeyProvider
 import app.seeneva.reader.screen.list.selection.ComicSelectionActionModeObserver
+import app.seeneva.reader.screen.list.state.ComicListFilterStoreContract
 import app.seeneva.reader.ui.screen.library.LibraryAction
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.snackbar.BaseTransientBottomBar
@@ -80,6 +81,7 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import org.koin.android.scope.AndroidScopeComponent
 import org.koin.androidx.scope.fragmentScope
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.component.KoinScopeComponent
 import org.koin.core.component.inject
 import org.koin.core.scope.Scope
@@ -114,19 +116,9 @@ private enum class ScreenState(val menuEnabled: Boolean = true) {
 }
 
 interface ComicsListView : PresenterStatefulView {
-    fun showFilters(filters: List<FilterLabel>)
-
     fun onComicsMarkedRemoved(ids: Set<Long>)
 
     fun onComicAdded(result: ComicAddResult)
-
-    /**
-     * Show sort selector
-     * @param currentSort current selected sort
-     */
-    fun showComicSortTypes(currentSort: QuerySort)
-
-    fun showFiltersEditor(selectedFilters: Map<FilterGroup.ID, Filter>)
 
     fun setComicListType(listViewType: ComicListViewType)
 
@@ -170,6 +162,8 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
     //private val searchView by _searchView
 
     override val scope: Scope by fragmentScope()
+
+    private val listFilterViewModel by viewModel<ComicListFilterViewModel>()
 
     private val presenter by inject<ComicsListPresenter>()
 
@@ -249,7 +243,11 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
 
     private val filtersAdapter = FiltersAdapter(object : FiltersAdapter.Callback {
         override fun onFilterClicked(filterLabel: FilterLabel) {
-            presenter.removeFilter(filterLabel.groupId)
+            listFilterViewModel.sendIntent(
+                ComicListFilterStoreContract.Intent.RemoveFilter(
+                    filterLabel.groupId
+                )
+            )
         }
     })
 
@@ -517,6 +515,29 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
             }
         }
 
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    listFilterViewModel.state.collect { state ->
+                        showFilters(state.filterLabels)
+                    }
+                }
+
+                launch {
+                    listFilterViewModel.labels.collect { label ->
+                        when (label) {
+                            is ComicListFilterStoreContract.Label.OpenFilterEditor ->
+                                showFiltersEditor(label.selectedFilters)
+
+                            is ComicListFilterStoreContract.Label.OpenSortSelector ->
+                                showComicSortTypes(label.currentSort)
+                        }
+                    }
+                }
+            }
+        }
+
+
         // restore last visible item and start loading list paging
         presenter.loadComicsPagingData(savedInstanceState?.getInt(STATE_LIST_FIRST_ITEM) ?: 0)
     }
@@ -535,7 +556,131 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
         outState.putInt(STATE_LIST_FIRST_ITEM, listLayoutManager.findFirstVisibleItemPosition())
     }
 
-    override fun showFilters(filters: List<FilterLabel>) {
+    override fun onComicsMarkedRemoved(ids: Set<Long>) {
+        //remove selection if any
+        listSelectionTracker.setItemsSelected(ids, false)
+
+        val text =
+            resources.getQuantityString(R.plurals.comic_list_comic_book_removed, ids.size, ids.size)
+
+        newSnackbar(text, Snackbar.LENGTH_LONG).also {
+            it.addCallback(object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                override fun onDismissed(transientBottomBar: Snackbar, event: Int) {
+                    super.onDismissed(transientBottomBar, event)
+
+                    if (event != DISMISS_EVENT_ACTION) {
+                        presenter.deleteComicBook(ids, true)
+                    }
+                }
+            })
+
+            it.setAction(R.string.comic_list_undo_delete) { presenter.undoComicRemove(ids) }
+        }.show()
+    }
+
+    override fun onComicAdded(result: ComicAddResult) {
+        newSnackbar(
+            result.humanDescriptionShort(resources),
+            if (result.success) {
+                Snackbar.LENGTH_SHORT
+            } else {
+                Snackbar.LENGTH_LONG
+            }
+        ).show()
+    }
+
+    override fun onSortChecked(dialog: ComicsSortDialog, sort: QuerySort) {
+        dialog.dismiss()
+
+        listFilterViewModel.sendIntent(ComicListFilterStoreContract.Intent.SelectSort(sort))
+    }
+
+    override fun onFiltersAccepted(acceptedFilters: Map<FilterGroup.ID, Filter>) {
+        listFilterViewModel.sendIntent(
+            ComicListFilterStoreContract.Intent.SetFilters(acceptedFilters)
+        )
+    }
+
+    override fun onAddModeSelected(selectedMode: AddComicBookMode) {
+        if (!router.showComicBookSelector(selectedMode)) {
+            //show install package manager from store message
+            val installFileManagerIntent = ComicHelper.installFileManagerIntent
+
+            newSnackbar(
+                resources.getString(R.string.comic_list_error_no_file_manager),
+                Snackbar.LENGTH_SHORT
+            ).also {
+                if (installFileManagerIntent.resolveActivity(requireContext().packageManager) != null) {
+                    it.setAction(R.string.search) { startActivity(installFileManagerIntent) }
+                }
+            }.show()
+        }
+    }
+
+    override fun onTitleRenamed(id: Long, newTitle: String) {
+        presenter.renameComicBook(id, newTitle)
+    }
+
+    override fun setComicListType(listViewType: ComicListViewType) {
+        if (allListTypes.remove(listViewType)) {
+            allListTypes.addFirst(listViewType)
+
+            currentListType = listViewType
+        }
+    }
+
+    override fun onSyncStateChanged(state: ComicsListView.SyncState) {
+        currentSyncState = state
+    }
+
+    /**
+     * On add a new comic book click
+     */
+    fun onAddComicBookClick() {
+        AddModeSelectorDialog.newInstance().show(childFragmentManager, TAG_ADD_MODE_SELECTOR)
+    }
+
+    /**
+     * On sort library items click
+     */
+    fun onSortClick() {
+        listFilterViewModel.sendIntent(ComicListFilterStoreContract.Intent.EditSort)
+    }
+
+    /**
+     * On filter library items click
+     */
+    fun onFilterClick() {
+        listFilterViewModel.sendIntent(ComicListFilterStoreContract.Intent.EditFilters)
+    }
+
+    /**
+     * On sync library items click
+     */
+    fun onSyncClick() {
+        presenter.onSyncClick()
+    }
+
+    private fun showFiltersEditor(selectedFilters: Map<FilterGroup.ID, Filter>) {
+        if (childFragmentManager.findFragmentByTag(TAG_EDIT_FILTERS) == null) {
+            EditFiltersDialog.newInstance(selectedFilters)
+                .show(childFragmentManager, TAG_EDIT_FILTERS)
+        }
+    }
+
+    private fun showComicSortTypes(currentSort: QuerySort) {
+        if (childFragmentManager.findFragmentByTag(TAG_SORT) == null) {
+            ComicsSortDialog.newInstance(currentSort).show(childFragmentManager, TAG_SORT)
+        }
+    }
+
+    private fun nextComicListType() {
+        allListTypes.remove().also { allListTypes.addLast(it) }
+
+        currentListType = allListTypes.first
+    }
+
+    private fun showFilters(filters: List<FilterLabel>) {
         if (filters.isNotEmpty()) {
             filtersAdapter.submitList(filters)
         }
@@ -595,128 +740,6 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
         }
 
         viewBinding.filtersRecyclerView.doOnLayout { animateFilters(filters.isNotEmpty()) }
-    }
-
-    override fun onComicsMarkedRemoved(ids: Set<Long>) {
-        //remove selection if any
-        listSelectionTracker.setItemsSelected(ids, false)
-
-        val text =
-            resources.getQuantityString(R.plurals.comic_list_comic_book_removed, ids.size, ids.size)
-
-        newSnackbar(text, Snackbar.LENGTH_LONG).also {
-            it.addCallback(object : BaseTransientBottomBar.BaseCallback<Snackbar>() {
-                override fun onDismissed(transientBottomBar: Snackbar, event: Int) {
-                    super.onDismissed(transientBottomBar, event)
-
-                    if (event != DISMISS_EVENT_ACTION) {
-                        presenter.deleteComicBook(ids, true)
-                    }
-                }
-            })
-
-            it.setAction(R.string.comic_list_undo_delete) { presenter.undoComicRemove(ids) }
-        }.show()
-    }
-
-    override fun onComicAdded(result: ComicAddResult) {
-        newSnackbar(
-            result.humanDescriptionShort(resources),
-            if (result.success) {
-                Snackbar.LENGTH_SHORT
-            } else {
-                Snackbar.LENGTH_LONG
-            }
-        ).show()
-    }
-
-    override fun showComicSortTypes(currentSort: QuerySort) {
-        if (childFragmentManager.findFragmentByTag(TAG_SORT) == null) {
-            ComicsSortDialog.newInstance(currentSort).show(childFragmentManager, TAG_SORT)
-        }
-    }
-
-    override fun showFiltersEditor(selectedFilters: Map<FilterGroup.ID, Filter>) {
-        if (childFragmentManager.findFragmentByTag(TAG_EDIT_FILTERS) == null) {
-            EditFiltersDialog.newInstance(selectedFilters)
-                .show(childFragmentManager, TAG_EDIT_FILTERS)
-        }
-    }
-
-    override fun onSortChecked(dialog: ComicsSortDialog, sort: QuerySort) {
-        dialog.dismiss()
-
-        presenter.onSortSelected(sort)
-    }
-
-    override fun onFiltersAccepted(acceptedFilters: Map<FilterGroup.ID, Filter>) {
-        presenter.onFiltersAccepted(acceptedFilters)
-    }
-
-    override fun onAddModeSelected(selectedMode: AddComicBookMode) {
-        if (!router.showComicBookSelector(selectedMode)) {
-            //show install package manager from store message
-            val installFileManagerIntent = ComicHelper.installFileManagerIntent
-
-            newSnackbar(
-                resources.getString(R.string.comic_list_error_no_file_manager),
-                Snackbar.LENGTH_SHORT
-            ).also {
-                if (installFileManagerIntent.resolveActivity(requireContext().packageManager) != null) {
-                    it.setAction(R.string.search) { startActivity(installFileManagerIntent) }
-                }
-            }.show()
-        }
-    }
-
-    override fun onTitleRenamed(id: Long, newTitle: String) {
-        presenter.renameComicBook(id, newTitle)
-    }
-
-    override fun setComicListType(listViewType: ComicListViewType) {
-        if (allListTypes.remove(listViewType)) {
-            allListTypes.addFirst(listViewType)
-
-            currentListType = listViewType
-        }
-    }
-
-    override fun onSyncStateChanged(state: ComicsListView.SyncState) {
-        currentSyncState = state
-    }
-
-    /**
-     * On add a new comic book click
-     */
-    fun onAddComicBookClick() {
-        AddModeSelectorDialog.newInstance().show(childFragmentManager, TAG_ADD_MODE_SELECTOR)
-    }
-
-    /**
-     * On sort library items click
-     */
-    fun onSortClick() {
-        presenter.onSortListClick()
-    }
-
-    /**
-     * On filter library items click
-     */
-    fun onFilterClick() {
-        presenter.onEditFilterClick()
-    }
-
-    /**
-     * On sync library items click
-     */
-    fun onSyncClick() {
-        presenter.onSyncClick()
-    }
-
-    private fun nextComicListType() {
-        allListTypes.remove().also { allListTypes.addLast(it) }
-
-        currentListType = allListTypes.first
     }
 
     /**

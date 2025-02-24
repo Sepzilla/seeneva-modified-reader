@@ -22,21 +22,15 @@ import android.net.Uri
 import androidx.core.os.bundleOf
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.withStarted
 import androidx.savedstate.SavedStateRegistry
 import app.seeneva.reader.common.coroutines.Dispatchers
-import app.seeneva.reader.extension.registerAndRestore
 import app.seeneva.reader.logic.ComicListViewType
 import app.seeneva.reader.logic.ComicsSettings
 import app.seeneva.reader.logic.comic.AddComicBookMode
 import app.seeneva.reader.logic.comic.Library
 import app.seeneva.reader.logic.entity.query.QueryParams
-import app.seeneva.reader.logic.entity.query.QuerySort
-import app.seeneva.reader.logic.entity.query.filter.Filter
-import app.seeneva.reader.logic.entity.query.filter.FilterGroup
 import app.seeneva.reader.presenter.BasePresenter
 import app.seeneva.reader.presenter.Presenter
-import app.seeneva.reader.screen.list.entity.FilterLabel
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.tinylog.kotlin.Logger
@@ -53,11 +47,6 @@ interface ComicsListPresenter : Presenter {
      * @see pagingState
      */
     fun loadComicsPagingData(startIndex: Int = 0, pageSize: Int = COMIC_PAGE_SIZE)
-
-    /**
-     * User click on edit list filters button
-     */
-    fun onEditFilterClick()
 
     /**
      * User click on sync button
@@ -78,28 +67,11 @@ interface ComicsListPresenter : Presenter {
     fun undoComicRemove(ids: Set<Long>)
 
     /**
-     * On sort comic book list button click
-     */
-    fun onSortListClick()
-
-    /**
-     * User selected a new sort
-     * @param selectedSort buildNew sort type
-     */
-    fun onSortSelected(selectedSort: QuerySort)
-
-    fun onFiltersAccepted(acceptedFilters: Map<FilterGroup.ID, Filter>)
-
-    fun removeFilter(groupId: FilterGroup.ID)
-
-    /**
      * Rename comic book
      * @param id ikd of the comic book to rename
      * @param title buildNew title of the comic book
      */
     fun renameComicBook(id: Long, title: String)
-
-    fun onSearchQuery(query: String?)
 
     fun toggleComicCompletedMark(id: Long)
 
@@ -140,7 +112,7 @@ class ComicsListPresenterImpl(
         get() = viewModel.queryParams
         set(newQueryParams) {
             if (queryParams.filters != newQueryParams.filters) {
-                showFilters(newQueryParams)
+                // showFilters(newQueryParams)
             }
 
             viewModel.queryParams = newQueryParams
@@ -150,14 +122,15 @@ class ComicsListPresenterImpl(
         get() = queryParams.titleQuery
 
     init {
-        registerAndRestore(view) { state ->
-            view.setComicListType(settings.getComicListType())
-
-            if (state != null) {
-                //restore titleQuery if needed
-                onSearchQuery(state.getString(STATE_SEARCH_QUERY))
-            }
-        }
+        //TODO
+//        registerAndRestore(view) { state ->
+//            view.setComicListType(settings.getComicListType())
+//
+//            if (state != null) {
+//                //restore titleQuery if needed
+//                onSearchQuery(state.getString(STATE_SEARCH_QUERY))
+//            }
+//        }
 
         viewScope.launch {
             view.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -187,12 +160,6 @@ class ComicsListPresenterImpl(
                 }
             }
         }
-
-        presenterScope.launch {
-            view.withStarted {
-                showFilters(queryParams)
-            }
-        }
     }
 
     override fun saveState() =
@@ -200,10 +167,6 @@ class ComicsListPresenterImpl(
 
     override fun loadComicsPagingData(startIndex: Int, pageSize: Int) {
         viewModel.loadComicsPagingData(startIndex, pageSize)
-    }
-
-    override fun onEditFilterClick() {
-        view.showFiltersEditor(queryParams.filters)
     }
 
     override fun onSyncClick() {
@@ -222,42 +185,8 @@ class ComicsListPresenterImpl(
         viewModel.setRemovedState(ids, false)
     }
 
-    override fun onSortListClick() {
-        view.showComicSortTypes(queryParams.sort)
-    }
-
-    override fun onSortSelected(selectedSort: QuerySort) {
-        if (queryParams.sort == selectedSort) {
-            return
-        }
-
-        queryParams = queryParams.buildNew { sort = selectedSort }
-    }
-
-    override fun onFiltersAccepted(acceptedFilters: Map<FilterGroup.ID, Filter>) {
-        queryParams = queryParams.buildNew {
-            acceptedFilters.forEach { (id, filter) -> addFilter(id, filter) }
-        }
-    }
-
-    override fun removeFilter(groupId: FilterGroup.ID) {
-        if (!queryParams.filters.containsKey(groupId)) {
-            return
-        }
-
-        queryParams = queryParams.buildNew { removeFilter(groupId) }
-    }
-
     override fun renameComicBook(id: Long, title: String) {
         viewModel.rename(id, title)
-    }
-
-    override fun onSearchQuery(query: String?) {
-        if (queryParams.titleQuery == query) {
-            return
-        }
-
-        queryParams = queryParams.buildNew { titleQuery = query }
     }
 
     override fun toggleComicCompletedMark(id: Long) {
@@ -274,12 +203,6 @@ class ComicsListPresenterImpl(
 
     override fun addComicBooks(mode: AddComicBookMode, paths: List<Uri>, flags: Int) {
         viewModel.add(paths, mode, flags)
-    }
-
-    private fun showFilters(queryParams: QueryParams) {
-        view.showFilters(queryParams.filters.map { (groupId, filter) ->
-            FilterLabel(groupId, filter.title)
-        })
     }
 
     private companion object {

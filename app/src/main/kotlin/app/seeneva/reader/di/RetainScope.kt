@@ -25,8 +25,8 @@ import androidx.lifecycle.get
 import org.koin.android.ext.android.getKoin
 import org.koin.android.scope.AndroidScopeComponent
 import org.koin.androidx.scope.ScopeHandlerViewModel
-import org.koin.androidx.scope.retainedScopeId
 import org.koin.core.Koin
+import org.koin.core.component.getScopeId
 import org.koin.core.component.getScopeName
 import org.koin.core.qualifier.Qualifier
 import org.koin.core.scope.Scope
@@ -59,4 +59,4 @@ fun ViewModelStoreOwner.createRetainScope(
  * @param scopeName name for the new scope
  */
 fun ComponentActivity.createActivityRetainScope(scopeName: Qualifier = getScopeName()): Scope =
-    createRetainScope(koin = getKoin(), scopeId = retainedScopeId(), scopeName = scopeName)
+    createRetainScope(koin = getKoin(), scopeId = getScopeId(), scopeName = scopeName)

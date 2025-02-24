@@ -75,11 +75,16 @@ class ComicsAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
             is ComicsViewHolder -> {
-                val comicItem = getItem(position)!!
+                val comicItem = getItem(0)!!
 
                 holder.bind(comicItem, comicItem.isSelected())
             }
         }
+    }
+
+    override fun getItemCount(): Int {
+        //TODO !!!!!!!!!!!!!!!!!!!
+        return if (super.getItemCount() > 0) 100 else 0
     }
 
     override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
@@ -98,12 +103,13 @@ class ComicsAdapter(
 
     override fun getItemViewType(position: Int) =
         when (comicViewType) {
-            ComicListViewType.GRID -> if (peek(position) == null) {
+            ComicListViewType.GRID -> if (peek(0) == null) {
                 R.layout.vh_comic_grid_placeholder
             } else {
                 R.layout.vh_comic_grid
             }
-            ComicListViewType.LIST -> if (peek(position) == null) {
+
+            ComicListViewType.LIST -> if (peek(0) == null) {
                 R.layout.vh_comic_list_placeholder
             } else {
                 R.layout.vh_comic_list

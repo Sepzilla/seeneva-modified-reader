@@ -13,16 +13,17 @@ androidx-activity = "1.9.3"
 androidx-fragment = "1.8.5"
 tinylog = "2.3.1"
 mockk = "1.13.12"
+mvikotlin = "4.2.0"
 
 [libraries]
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.7.3" }
-androidx-compose-bom = { module = "androidx.compose:compose-bom", version = "2024.11.00" }
+androidx-compose-bom = { module = "androidx.compose:compose-bom", version = "2025.01.01" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
-androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version = "2.8.4" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version = "2.8.6" }
 androidx-core = { module = "androidx.core:core-ktx", version = "1.13.1" }
 androidx-annotations = { module = "androidx.annotation:annotation", version = "1.9.1" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version = "1.7.0" }
@@ -50,8 +51,10 @@ androidx-test-runner = { module = "androidx.test:runner", version = "1.6.2" }
 androidx-test-core = { module = "androidx.test:core-ktx", version = "1.6.1" }
 androidx-test-junit = { module = "androidx.test.ext:junit-ktx", version = "1.2.1" }
 material = { module = "com.google.android.material:material", version = "1.12.0" }
-android-javaDesugar = { module = "com.android.tools:desugar_jdk_libs", version = "2.1.3" }
-koin-bom = { module = "io.insert-koin:koin-bom", version = "4.0.0" }
+android-javaDesugar = { module = "com.android.tools:desugar_jdk_libs", version = "2.1.4" }
+koin-bom = { module = "io.insert-koin:koin-bom", version = "4.0.1" }
+#koin-annotations = { module = "io.insert-koin:koin-annotations" }
+#koin-ksp = { module = "io.insert-koin:koin-ksp-compiler" }
 koin-compose = { module = "io.insert-koin:koin-androidx-compose" }
 koin-android = { module = "io.insert-koin:koin-android" }
 koin-android-workmanager = { module = "io.insert-koin:koin-androidx-workmanager" }
@@ -61,6 +64,9 @@ tinylog-api = { module = "org.tinylog:tinylog-api-kotlin", version.ref = "tinylo
 tinylog-impl = { module = "org.tinylog:tinylog-impl", version.ref = "tinylog" }
 scaleImageView = { module = "com.davemorrissey.labs:subsampling-scale-image-view-androidx", version = "3.10.0" }
 rTree = { module = "com.github.davidmoten:rtree2", version = "0.9-RC1" }
+mvikotlin = { module = "com.arkivanov.mvikotlin:mvikotlin", version.ref = "mvikotlin" }
+mvikotlin-main = { module = "com.arkivanov.mvikotlin:mvikotlin-main", version.ref = "mvikotlin" }
+mvikotlin-ext-coroutines = { module = "com.arkivanov.mvikotlin:mvikotlin-extensions-coroutines", version.ref = "mvikotlin" }
 mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
 mockk-agent = { module = "io.mockk:mockk-agent", version.ref = "mockk" }
 kotlin-faker = { module = "io.github.serpro69:kotlin-faker", version = "1.7.1" }

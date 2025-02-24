@@ -34,15 +34,20 @@ import app.seeneva.reader.screen.list.*
 import app.seeneva.reader.screen.list.dialog.filters.*
 import app.seeneva.reader.screen.list.dialog.info.*
 import app.seeneva.reader.screen.list.dialog.info.ComicInfoFragment.Companion.bookId
+import app.seeneva.reader.screen.list.state.ComicListFilterStoreContract
 import app.seeneva.reader.screen.viewer.*
 import app.seeneva.reader.screen.viewer.BookViewerActivity.Companion.bookId
 import app.seeneva.reader.screen.viewer.dialog.config.*
 import app.seeneva.reader.screen.viewer.page.*
 import app.seeneva.reader.screen.viewer.page.BookViewerPageFragment.Companion.pageId
 import app.seeneva.reader.service.add.*
+import app.seeneva.reader.ui.screen.library.LibraryViewModel
+import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract
 import app.seeneva.reader.work.SyncManager
 import app.seeneva.reader.work.SyncWorkManager
 import app.seeneva.reader.work.worker.SyncWorker
+import com.arkivanov.mvikotlin.core.store.StoreFactory
+import com.arkivanov.mvikotlin.main.store.DefaultStoreFactory
 import kotlinx.coroutines.Job
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
@@ -67,6 +72,8 @@ object Module {
         single<Dispatchers> { AppDispatchers }
 
         single<SyncManager> { SyncWorkManager(WorkManager.getInstance(androidApplication())) }
+
+        singleOf(::DefaultStoreFactory) withOptions { bind<StoreFactory>() }
 
         worker { SyncWorker(get(), get(), inject()) }
 
@@ -207,6 +214,25 @@ object Module {
             )
         } withOptions {
             bind<ComicsListViewModel>()
+        }
+
+        viewModel {
+            ComicListFilterViewModel(
+                ComicListFilterStoreContract.createComicListFilterStore(
+                    storeFactory = get(),
+                    settings = get()
+                )
+            )
+        }
+
+        viewModel {
+            LibraryViewModel(
+                store = LibraryListStoreContract.createStore(
+                    storeFactory = get(),
+                    library = get(),
+                    comicListUseCase = get(),
+                )
+            )
         }
 
         viewModelOf(::ComicInfoViewModelImpl) withOptions {

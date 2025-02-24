@@ -195,6 +195,10 @@ dependencies {
 
     implementation(libs.scaleImageView)
 
+    implementation(libs.mvikotlin)
+    implementation(libs.mvikotlin.main)
+    implementation(libs.mvikotlin.ext.coroutines)
+
     testImplementation(kotlin("test-junit"))
     testImplementation(libs.kluent) {
         exclude("com.nhaarman.mockitokotlin2")

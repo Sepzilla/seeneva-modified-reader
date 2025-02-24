@@ -153,14 +153,6 @@ class ComicsListViewModelImpl(
 
     private var listLoadJob: ListLoadingJob? = null
 
-    init {
-        vmScope.launch {
-            queryParamsFlow.collectLatest {
-                settings.saveComicListQueryParams(it)
-            }
-        }
-    }
-
     override fun loadComicsPagingData(startIndex: Int, pageSize: Int) {
         listLoadJob?.also {
             val sameRequest = it.isActive && it.pageSize == pageSize && it.startIndex == startIndex
