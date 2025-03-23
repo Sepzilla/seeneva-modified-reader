@@ -24,7 +24,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
 import app.seeneva.reader.logic.comic.AddComicBookMode
-import app.seeneva.reader.logic.comic.ComicHelper
+import app.seeneva.reader.logic.comic.ComicHelper.persistPermissions
 
 /**
  * Open comic book system chooser [ActivityResultContract]
@@ -35,16 +35,16 @@ class ChooseComicBookContract : ActivityResultContract<AddComicBookMode, ChooseC
     override fun createIntent(context: Context, input: AddComicBookMode): Intent {
         val baseOpenIntent =
             Intent().addCategory(Intent.CATEGORY_OPENABLE) //without it you can receive a "virtual" file
-                .setFlags(ComicHelper.persistPermissions)
+                .setFlags(persistPermissions)
                 .setType("*/*")
                 .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         //.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/x-cbr"))
 
         return when (input) {
-            AddComicBookMode.Import -> baseOpenIntent.setAction(Intent.ACTION_GET_CONTENT)
-            AddComicBookMode.Link ->
-                //we have already check Android version. So suppress warning
-                @Suppress("InlinedApi")
+            AddComicBookMode.Copy ->
+                baseOpenIntent.setAction(Intent.ACTION_GET_CONTENT)
+
+            AddComicBookMode.Import ->
                 baseOpenIntent.setAction(Intent.ACTION_OPEN_DOCUMENT)
                     .addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
 

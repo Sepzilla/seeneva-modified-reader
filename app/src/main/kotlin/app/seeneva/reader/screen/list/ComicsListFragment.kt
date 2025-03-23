@@ -72,7 +72,6 @@ import app.seeneva.reader.screen.list.selection.ComicDetailsLookup
 import app.seeneva.reader.screen.list.selection.ComicKeyProvider
 import app.seeneva.reader.screen.list.selection.ComicSelectionActionModeObserver
 import app.seeneva.reader.screen.list.state.ComicListFilterStoreContract
-import app.seeneva.reader.ui.screen.library.LibraryAction
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
@@ -192,7 +191,7 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
 
         listAdapter.setComicViewType(newType)
 
-        invalidateMenuActions()
+        //invalidateMenuActions()
     }
 
     private val listLayoutManager by lazy { GridLayoutManager(requireContext(), gridSpanCount) }
@@ -294,13 +293,6 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
      */
     private val currentListScreenState = MutableStateFlow(ScreenState.STATE_EMPTY)
 
-    private val menuActionsInner = MutableStateFlow<List<LibraryAction>>(emptyList())
-
-    /**
-     * Flow of currently visible menu items
-     */
-    val menuActions = menuActionsInner.asStateFlow()
-
     /**
      * Current sync state
      */
@@ -325,7 +317,7 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
         }
 
         //need to update options menu
-        invalidateMenuActions()
+        //invalidateMenuActions()
     }
 
     private val notificationPermissionCallback = object : ActivityResultCallback<Boolean> {
@@ -440,7 +432,7 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
 //                            setViewEnabled(searchView, newState.menuEnabled)
 //                        }
 
-                        invalidateMenuActions()
+                        // invalidateMenuActions()
                     }
                 }
 
@@ -775,27 +767,27 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
     /**
      * Invalidate list of the menu actions
      */
-    private fun invalidateMenuActions() {
-        menuActionsInner.value = if (currentListScreenState.value.menuEnabled) {
-            buildList {
-                add(
-                    when (currentListType) {
-                        ComicListViewType.GRID ->
-                            LibraryAction.ListView
-
-                        ComicListViewType.LIST -> {
-                            LibraryAction.GridView
-                        }
-                    }
-                )
-                add(LibraryAction.Sort)
-                add(LibraryAction.Filter)
-                add(LibraryAction.Sync(enabled = currentSyncState == ComicsListView.SyncState.IDLE))
-            }
-        } else {
-            emptyList()
-        }
-    }
+//    private fun invalidateMenuActions() {
+//        menuActionsInner.value = if (currentListScreenState.value.menuEnabled) {
+//            buildList {
+//                add(
+//                    when (currentListType) {
+//                        ComicListViewType.GRID ->
+//                            LibraryAction.ListView
+//
+//                        ComicListViewType.LIST -> {
+//                            LibraryAction.GridView
+//                        }
+//                    }
+//                )
+//                add(LibraryAction.Sort)
+//                add(LibraryAction.Filter)
+//                add(LibraryAction.Sync(enabled = currentSyncState == ComicsListView.SyncState.IDLE))
+//            }
+//        } else {
+//            emptyList()
+//        }
+//    }
 
     private fun newSnackbar(
         msg: String,

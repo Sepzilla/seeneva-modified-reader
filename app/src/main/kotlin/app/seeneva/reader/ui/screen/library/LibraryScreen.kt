@@ -18,47 +18,65 @@
 
 package app.seeneva.reader.ui.screen.library
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.graphics.Rect
 import android.view.LayoutInflater
 import android.view.View
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Menu
+import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.PagingData
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.seeneva.reader.R
 import app.seeneva.reader.logic.ComicListViewType
-import app.seeneva.reader.logic.comic.Library
+import app.seeneva.reader.logic.comic.AddComicBookMode
 import app.seeneva.reader.logic.entity.ComicListItem
 import app.seeneva.reader.logic.image.ImageLoader
+import app.seeneva.reader.logic.results.ChooseComicBookContract
+import app.seeneva.reader.logic.results.ChooseComicBookResult
 import app.seeneva.reader.screen.list.adapter.ComicsAdapter
+import app.seeneva.reader.ui.screen.library.model.LibraryAction
 import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract
-import kotlinx.coroutines.flow.MutableSharedFlow
+import app.seeneva.reader.ui.widget.CheckboxWithText
+import app.seeneva.reader.ui.widget.RadioButtonWithText
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
+import org.tinylog.kotlin.Logger
+import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract.Intent as LibraryIntent
+import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract.Label as LibrarySideEffect
+import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract.State as LibraryState
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,18 +87,30 @@ fun LibraryScreen(
 ) {
     LaunchedEffect(Unit) {
         //TODO
-        libraryViewModel.sendIntent(LibraryListStoreContract.Intent.LoadPage())
+        libraryViewModel.sendIntent(LibraryIntent.LoadPage())
     }
 
-    val coroutineScope = rememberCoroutineScope()
-
     val topBarBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val snackbarState = remember { SnackbarHostState() }
 
-    // Flow of the clicked bottom bar actions. The fragment will consume it
-    val clickedActions = remember { MutableSharedFlow<LibraryAction>() }
+    CollectSideEffects(
+        sideEffects = libraryViewModel.sideEffects,
+        snackbarState = snackbarState,
+        onNoComicBookSelector = {
+            libraryViewModel.sendIntent(LibraryIntent.ProcessNoLibrarySelector)
+        },
+        onComicBookSelectorResult = {
+            libraryViewModel.sendIntent(LibraryIntent.ProcessLibrarySelectorResult(it))
+        },
+        onAddToLibrary = {
+            libraryViewModel.sendIntent(LibraryIntent.AddToLibrary)
+        }
+    )
 
-    // Lis of bottom bar actions to show
-    var bottomBarActions by remember { mutableStateOf(emptyList<LibraryAction>()) }
+    // `true` means that the bottom sheet should be visible
+    var showAddComicBookModeSheet by rememberSaveable { mutableStateOf(false) }
+
+    val libraryState by libraryViewModel.state.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -91,39 +121,71 @@ fun LibraryScreen(
         },
         bottomBar = {
             BottomBar(
-                actions = bottomBarActions,
-                onActionClick = {
-                    coroutineScope.launch {
-                        clickedActions.emit(it)
+                actions = libraryState.actions,
+                actionsEnabled = libraryState.isMenuEnabled,
+                isSyncing = libraryState.isSyncing,
+                onActionClick = { action ->
+                    when (action) {
+                        LibraryAction.ListView ->
+                            libraryViewModel.sendIntent(
+                                LibraryIntent.SetViewType(ComicListViewType.LIST)
+                            )
+
+                        LibraryAction.GridView ->
+                            libraryViewModel.sendIntent(
+                                LibraryIntent.SetViewType(ComicListViewType.GRID)
+                            )
+
+                        LibraryAction.Sort -> TODO()
+                        LibraryAction.Filter -> TODO()
+                        LibraryAction.Sync ->
+                            libraryViewModel.sendIntent(LibraryIntent.SyncLibrary)
                     }
+                },
+                onAddClick = {
+                    showAddComicBookModeSheet = true
                 }
             )
         },
+        snackbarHost = { SnackbarHost(hostState = snackbarState) },
         modifier = Modifier.nestedScroll(connection = topBarBehavior.nestedScrollConnection)
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
-            val libraryState by libraryViewModel.state.collectAsStateWithLifecycle()
-
             when (val state = libraryState) {
-                LibraryListStoreContract.State.Idle -> {
+                LibraryState.Idle -> {
 
                 }
 
-                is LibraryListStoreContract.State.Loaded -> {
+                is LibraryState.Loaded -> {
                     LibraryList(
                         pagingData = state.pagingData,
-                        isSyncing = state.syncState == Library.State.SYNCING,
+                        viewType = state.viewType,
+                        isSyncing = state.isSyncing,
                         onStartSyncing = {
-                            libraryViewModel.sendIntent(LibraryListStoreContract.Intent.Sync)
+                            libraryViewModel.sendIntent(LibraryIntent.SyncLibrary)
                         }
                     )
                 }
 
-                LibraryListStoreContract.State.Loading -> {
+                LibraryState.Loading -> {
 
                 }
             }
         }
+    }
+
+    if (showAddComicBookModeSheet) {
+        PickAddComicBookModeBottomSheet(
+            onModeSelected = { mode, remember ->
+                libraryViewModel.sendIntent(
+                    LibraryIntent.OpenLibrarySelector(
+                        mode = mode,
+                        remember = remember,
+                    )
+                )
+            },
+            onDismiss = { showAddComicBookModeSheet = false }
+        )
     }
 }
 
@@ -197,6 +259,7 @@ private fun LibraryTopAppBar(
 @Composable
 private fun LibraryList(
     pagingData: PagingData<ComicListItem>,
+    viewType: ComicListViewType = ComicListViewType.default,
     isSyncing: Boolean = false,
     onStartSyncing: () -> Unit = {}
 ) {
@@ -211,6 +274,14 @@ private fun LibraryList(
 
         val imageLoader =
             koinInject<ImageLoader>(named<ImageLoader>()) { parametersOf(lifecycle) }
+
+        val gridSpanCount = when (viewType) {
+            ComicListViewType.GRID ->
+                integerResource(R.integer.comic_thumb_grid_size)
+
+            ComicListViewType.LIST ->
+                1
+        }
 
         AndroidView(
             modifier = Modifier.fillMaxSize(),
@@ -236,10 +307,10 @@ private fun LibraryList(
                 recyclerView.setHasFixedSize(true)
 
                 recyclerView.adapter = ComicsAdapter(
-                    comicViewType = ComicListViewType.GRID,
-                    imageLoader,
-                    LayoutInflater.from(it),
-                    object : ComicsAdapter.Callback {
+                    comicViewType = viewType,
+                    imageLoader = imageLoader,
+                    inflater = LayoutInflater.from(it),
+                    callback = object : ComicsAdapter.Callback {
                         override fun onItemDeleteClick(comic: ComicListItem) {
                         }
 
@@ -262,8 +333,7 @@ private fun LibraryList(
                         }
                     })
 
-                recyclerView.layoutManager =
-                    GridLayoutManager(it, it.resources.getInteger(R.integer.comic_thumb_grid_size))
+                recyclerView.layoutManager = GridLayoutManager(it, gridSpanCount)
 
                 recyclerView.addItemDecoration(
                     ComicGridMarginDecoration(
@@ -278,6 +348,10 @@ private fun LibraryList(
             }
         ) { recyclerView ->
             val adapter = recyclerView.adapter as ComicsAdapter
+            val layoutManager = recyclerView.layoutManager as GridLayoutManager
+
+            layoutManager.spanCount = gridSpanCount
+            adapter.setComicViewType(viewType)
 
             coroutineScope.launch {
                 adapter.submitData(pagingData)
@@ -289,116 +363,255 @@ private fun LibraryList(
 @Composable
 private fun BottomBar(
     actions: List<LibraryAction> = emptyList(),
-    onActionClick: (action: LibraryAction) -> Unit = {}
+    actionsEnabled: Boolean = false,
+    isSyncing: Boolean = false,
+    onActionClick: (action: LibraryAction) -> Unit = {},
+    onAddClick: () -> Unit = {}
 ) {
     BottomAppBar(
         actions = {
-            actions.forEach {
-                IconButton(enabled = it.enabled, onClick = { onActionClick(it) }) {
-                    it.Icon()
-                }
+            actions.forEach { action ->
+                BottomBarAction(
+                    action,
+                    enabled = if (action == LibraryAction.Sync) {
+                        actionsEnabled && !isSyncing
+                    } else {
+                        actionsEnabled
+                    },
+                    onClick = { onActionClick(action) }
+                )
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onActionClick(LibraryAction.Add) }) {
-                LibraryAction.Add.Icon()
+            FloatingActionButton(onClick = onAddClick) {
+                Icon(
+                    Icons.Rounded.Add,
+                    contentDescription = stringResource(R.string.comic_list_add)
+                )
             }
         }
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LibraryAction.Icon() {
-    when (this) {
-        is LibraryAction.ListView ->
+private fun BottomBarAction(
+    action: LibraryAction,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {}
+) {
+    val icon: ImageVector
+    val name: String
+
+    when (action) {
+        LibraryAction.ListView -> {
+            icon = Icons.AutoMirrored.Rounded.List
+            name = stringResource(R.string.comic_list_as_list)
+        }
+
+        LibraryAction.GridView -> {
+            icon = Icons.Rounded.GridView
+            name = stringResource(R.string.comic_list_as_grid)
+        }
+
+        LibraryAction.Sort -> {
+            icon = Icons.AutoMirrored.Rounded.Sort
+            name = stringResource(R.string.comic_list_sort)
+        }
+
+        LibraryAction.Filter -> {
+            icon = Icons.Rounded.FilterAlt
+            name = stringResource(R.string.comic_list_filter)
+        }
+
+        LibraryAction.Sync -> {
+            icon = Icons.Rounded.Sync
+            name = stringResource(R.string.comic_list_sync)
+        }
+    }
+
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = { PlainTooltip { Text(text = name) } },
+        state = rememberTooltipState()
+    ) {
+        IconButton(
+            enabled = enabled,
+            onClick = onClick
+        ) {
             Icon(
-                Icons.AutoMirrored.Rounded.List,
-                contentDescription = stringResource(R.string.comic_list_as_list)
+                imageVector = icon,
+                contentDescription = name
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PickAddComicBookModeBottomSheet(
+    onModeSelected: (mode: AddComicBookMode, remember: Boolean) -> Unit = { _, _ -> },
+    onDismiss: () -> Unit = {}
+) {
+    var selectedMode by remember { mutableStateOf(AddComicBookMode.Import) }
+    var rememberMode by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val sheetState = rememberModalBottomSheetState()
+
+    @Composable
+    fun ModeButton(mode: AddComicBookMode) {
+        RadioButtonWithText(
+            modifier = Modifier.fillMaxWidth(),
+            text = "Import",
+            selected = selectedMode == mode,
+            onClick = { selectedMode = mode }
+        )
+    }
+
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = onDismiss
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            Text(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                text = "Mode",
+                style = MaterialTheme.typography.labelLarge,
             )
 
-        is LibraryAction.Sort ->
-            Icon(
-                painter = painterResource(R.drawable.ic_round_sort_24dp),
-                contentDescription = stringResource(R.string.comic_list_sort)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-        is LibraryAction.Filter ->
-            Icon(
-                painter = painterResource(R.drawable.ic_round_filter_list_24dp),
-                contentDescription = stringResource(R.string.comic_list_filter)
-            )
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 2.dp
+            ) {
+                Column(modifier = Modifier.selectableGroup()) {
+                    AddComicBookMode.entries.forEach { mode ->
+                        ModeButton(mode = mode)
+                    }
+                }
+            }
+        }
 
-        is LibraryAction.Sync ->
-            Icon(
-                painter = painterResource(R.drawable.ic_round_sync_24dp),
-                contentDescription = stringResource(R.string.comic_list_sync)
-            )
+        CheckboxWithText(
+            modifier = Modifier.fillMaxWidth(),
+            checked = rememberMode,
+            onCheckedChange = {
+                rememberMode = !rememberMode
+            },
+            text = "Remember"
+        )
 
-        is LibraryAction.Add ->
-            Icon(
-                Icons.Rounded.Add,
-                contentDescription = stringResource(R.string.comic_list_add)
-            )
+        Button(
+            onClick = {
+                onModeSelected(selectedMode, rememberMode)
 
-        is LibraryAction.GridView ->
-            Icon(
-                painter = painterResource(R.drawable.ic_round_view_module_24dp),
-                contentDescription = stringResource(R.string.comic_list_as_grid)
-            )
+                coroutineScope.launch {
+                    try {
+                        sheetState.hide()
+                    } finally {
+                        onDismiss()
+                    }
+                }
+            }
+        ) {
+            Text(text = "Add")
+        }
     }
 }
 
 /**
- * Type of an action on the library screen
+ * Collect screen side effects
+ * @param sideEffects side effects flow
+ * @param snackbarState snackbar state
+ * @param onNoComicBookSelector function will be called if no comic book selector is available
+ * @param onComicBookSelectorResult function will be called on comic book selector result
+ * @param onAddToLibrary function will be called when comic book is ready to be added to the library
  */
-sealed interface LibraryAction {
-    /**
-     * Is action enabled
-     */
-    val enabled: Boolean
+@Composable
+private fun CollectSideEffects(
+    sideEffects: Flow<LibrarySideEffect>,
+    snackbarState: SnackbarHostState,
+    onComicBookSelectorResult: (ChooseComicBookResult?) -> Unit = {},
+    onNoComicBookSelector: () -> Unit = {},
+    onAddToLibrary: () -> Unit = {}
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
 
-    /**
-     * Add a new item to the library
-     */
-    data object Add : LibraryAction {
-        override val enabled: Boolean
-            get() = true
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+            // We do not care if the permission was granted or not, add the selected comioc book anyway
+            onAddToLibrary()
+        }
+
+    val comicBookChooserLauncher =
+        rememberLauncherForActivityResult(ChooseComicBookContract(), onComicBookSelectorResult)
+
+    LaunchedEffect(sideEffects, lifecycleOwner, snackbarState) {
+        lifecycleOwner.repeatOnLifecycle(state = Lifecycle.State.STARTED) {
+            sideEffects.collectLatest { sideEffect ->
+                when (sideEffect) {
+                    is LibrarySideEffect.ShowLibrarySelector -> {
+                        if (!sideEffect.handle(comicBookChooserLauncher)) {
+                            onNoComicBookSelector()
+                        }
+                    }
+
+                    is LibraryListStoreContract.Label.ShowInstallLibrarySelectorMsg -> {
+                        sideEffect.handle(context, snackbarState)
+                    }
+
+                    is LibraryListStoreContract.Label.RequestLibraryPermission -> {
+                        sideEffect.handle(permissionLauncher)
+                    }
+
+                    LibraryListStoreContract.Label.OnAddLibraryStarted -> {
+                        snackbarState.showSnackbar(
+                            message = context.getString(R.string.comic_list_message_add_progress)
+                        )
+                    }
+                }
+            }
+        }
     }
+}
 
-    /**
-     * Switch to the list view
-     */
-    data object ListView : LibraryAction {
-        override val enabled: Boolean
-            get() = true
+private fun LibrarySideEffect.ShowLibrarySelector.handle(
+    comicBookChooserLauncher: ActivityResultLauncher<AddComicBookMode>,
+): Boolean {
+    Logger.debug { "Start comic book selector with adding mode: '${mode}'" }
+
+    return try {
+        comicBookChooserLauncher.launch(mode)
+        true
+    } catch (e: ActivityNotFoundException) {
+        Logger.error(e) { "Can't start comic book selector for the mode: '${mode}'" }
+        false
     }
+}
 
-    /**
-     * Switch to the grid mode
-     */
-    data object GridView : LibraryAction {
-        override val enabled: Boolean
-            get() = true
+private suspend fun LibrarySideEffect.ShowInstallLibrarySelectorMsg.handle(
+    context: Context,
+    snackbarState: SnackbarHostState
+) {
+    val result = snackbarState.showSnackbar(
+        message = context.getString(R.string.comic_list_error_no_file_manager),
+        actionLabel = installIntent?.let { context.getString(R.string.install) },
+        duration = SnackbarDuration.Short,
+    )
+
+    if (result == SnackbarResult.ActionPerformed) {
+        context.startActivity(installIntent)
     }
+}
 
-    /**
-     * Sort items in the library
-     */
-    data object Sort : LibraryAction {
-        override val enabled: Boolean
-            get() = true
-    }
+private fun LibrarySideEffect.RequestLibraryPermission.handle(
+    permissionLauncher: ActivityResultLauncher<String>
+) {
+    Logger.debug { "Request Android permission: '${permission}'" }
 
-    /**
-     * Filter items in the library
-     */
-    data object Filter : LibraryAction {
-        override val enabled: Boolean
-            get() = true
-    }
-
-    /**
-     * Sync items in the library
-     */
-    data class Sync(override val enabled: Boolean = true) : LibraryAction
+    permissionLauncher.launch(permission)
 }

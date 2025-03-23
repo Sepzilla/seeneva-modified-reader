@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021 Sergei Solodovnikov
+ * Copyright (C) 2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package app.seeneva.reader.logic.comic
+package app.seeneva.reader.ui.screen.library.model
 
 /**
- * Modes for adding comic books into user's library
+ * Type of an action on the library screen
  */
-enum class AddComicBookMode {
+enum class LibraryAction {
     /**
-     * Request persist permissions to the provided content
+     * Switch to the list view
      */
-    Import,
+    ListView,
 
     /**
-     * Move file content into app folder
+     * Switch to the grid mode
      */
-    Copy
+    GridView,
+
+    /**
+     * Sort items in the library
+     */
+    Sort,
+
+    /**
+     * Filter items in the library
+     */
+    Filter,
+
+    /**
+     * Sync items in the library
+     */
+    Sync,
 }

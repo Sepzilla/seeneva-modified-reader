@@ -218,7 +218,7 @@ internal class LibraryFileManagerImpl(
         addMode: AddComicBookMode
     ): Uri {
         return when (addMode) {
-            AddComicBookMode.Import -> {
+            AddComicBookMode.Copy -> {
                 //we should copy comic book into app directory
 
                 //calculate comic book path. Rename target file name if it is already exists in the library
@@ -259,7 +259,7 @@ internal class LibraryFileManagerImpl(
                 targetPath.toUri()
             }
 
-            AddComicBookMode.Link -> {
+            AddComicBookMode.Import -> {
                 //it is document. We can link it
                 val success = io {
                     if (DocumentFile.isDocumentUri(context, fileData.path)) {

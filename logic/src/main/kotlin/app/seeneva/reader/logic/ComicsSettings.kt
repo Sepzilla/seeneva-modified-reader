@@ -31,7 +31,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.tinylog.kotlin.Logger
@@ -65,6 +64,12 @@ interface ComicsSettings {
      * @return comic book list view type
      */
     fun getComicListType(): ComicListViewType
+
+    /**
+     * Get chosen comic books list view type flow
+     * @return flow of comic book list view type
+     */
+    fun comicListTypeFlow(): Flow<ComicListViewType>
 
     /**
      * Save viewer configuration
@@ -138,6 +143,11 @@ internal class PrefsComicsSettings(
             ?.let { runCatching { ComicListViewType.valueOf(it) }.getOrNull() }
             ?: ComicListViewType.default
     }
+
+    override fun comicListTypeFlow(): Flow<ComicListViewType> =
+        updateFlow().filter { it == KEY_COMIC_LIST_VIEW_TYPE }
+            .map { getComicListType() }
+            .onStart { emit(getComicListType()) }
 
     override suspend fun saveViewerConfig(viewerConfig: ViewerConfig) {
         io {

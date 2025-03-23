@@ -1,0 +1,15 @@
+# https://developer.android.com/studio/preview/gemini/aiexclude
+**/.env.*
+
+local.properties
+keystore.properties
+
+.idea/
+*.iml
+.kotlin/
+
+**/.gradle/
+**/build/
+**/.cxx/
+native/target/
+vendor/bundle/

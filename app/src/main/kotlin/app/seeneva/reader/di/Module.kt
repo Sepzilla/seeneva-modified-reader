@@ -42,6 +42,7 @@ import app.seeneva.reader.screen.viewer.page.*
 import app.seeneva.reader.screen.viewer.page.BookViewerPageFragment.Companion.pageId
 import app.seeneva.reader.service.add.*
 import app.seeneva.reader.ui.screen.library.LibraryViewModel
+import app.seeneva.reader.ui.screen.library.state.LibraryAddComicBookContract
 import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract
 import app.seeneva.reader.work.SyncManager
 import app.seeneva.reader.work.SyncWorkManager
@@ -226,12 +227,19 @@ object Module {
         }
 
         viewModel {
+            val libraryAddComicBookParamStore =
+                LibraryAddComicBookContract.createStore(storeFactory = get())
+
             LibraryViewModel(
-                store = LibraryListStoreContract.createStore(
+                libraryListStore = LibraryListStoreContract.createStore(
                     storeFactory = get(),
+                    context = get(),
+                    libraryAddComicBookParamStore = libraryAddComicBookParamStore,
                     library = get(),
+                    settings = get(),
                     comicListUseCase = get(),
-                )
+                ),
+                libraryAddComicBookParamStore = libraryAddComicBookParamStore
             )
         }
 

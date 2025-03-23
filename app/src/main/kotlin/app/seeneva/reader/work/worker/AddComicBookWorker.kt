@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021 Sergei Solodovnikov
+ * Copyright (C) 2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +16,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package app.seeneva.reader.logic.comic
+package app.seeneva.reader.work.worker
 
-/**
- * Modes for adding comic books into user's library
- */
-enum class AddComicBookMode {
-    /**
-     * Request persist permissions to the provided content
-     */
-    Import,
+import android.content.Context
+import androidx.work.CoroutineWorker
+import androidx.work.WorkerParameters
 
-    /**
-     * Move file content into app folder
-     */
-    Copy
+class AddComicBookWorker(
+    appContext: Context,
+    params: WorkerParameters
+) : CoroutineWorker(appContext, params) {
+    override suspend fun doWork(): Result {
+        TODO("Not yet implemented")
+    }
 }

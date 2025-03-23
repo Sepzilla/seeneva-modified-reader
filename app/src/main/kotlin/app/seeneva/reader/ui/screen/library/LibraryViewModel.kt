@@ -21,26 +21,33 @@ package app.seeneva.reader.ui.screen.library
 import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.seeneva.reader.ui.screen.library.state.LibraryAddComicBookParamStore
 import app.seeneva.reader.ui.screen.library.state.LibraryListStore
 import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract
+import com.arkivanov.mvikotlin.extensions.coroutines.labelsChannel
 import com.arkivanov.mvikotlin.extensions.coroutines.stateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 
 /**
  * Provides data related to user's library
  *
- * @param store
+ * @param libraryListStore
  */
-class LibraryViewModel(private val store: LibraryListStore) : ViewModel() {
-    val state: StateFlow<LibraryListStoreContract.State> = store.stateFlow(viewModelScope)
+class LibraryViewModel(
+    private val libraryListStore: LibraryListStore,
+    private val libraryAddComicBookParamStore: LibraryAddComicBookParamStore,
+) : ViewModel() {
+    val state = libraryListStore.stateFlow(viewModelScope)
+    val sideEffects = libraryListStore.labelsChannel(viewModelScope).receiveAsFlow()
 
     @MainThread
     fun sendIntent(intent: LibraryListStoreContract.Intent) {
-        store.accept(intent)
+        libraryListStore.accept(intent)
     }
 
     override fun onCleared() {
         super.onCleared()
-        store.dispose()
+        libraryListStore.dispose()
+        libraryAddComicBookParamStore.dispose()
     }
 }

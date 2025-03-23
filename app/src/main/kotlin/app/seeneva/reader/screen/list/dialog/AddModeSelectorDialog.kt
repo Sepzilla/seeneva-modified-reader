@@ -69,12 +69,13 @@ class AddModeSelectorDialog : BaseDraggableDialog(R.layout.dialog_add_mode_selec
     private val AddComicBookMode.data: AddModeData
         get() {
             return when (this) {
-                AddComicBookMode.Import ->
+                AddComicBookMode.Copy ->
                     AddModeData(
                         getString(LogicR.string.add_mode_import),
                         getString(LogicR.string.add_mode_import_descr)
                     )
-                AddComicBookMode.Link ->
+
+                AddComicBookMode.Import ->
                     AddModeData(
                         getString(LogicR.string.add_mode_link),
                         getString(LogicR.string.add_mode_link_descr)
