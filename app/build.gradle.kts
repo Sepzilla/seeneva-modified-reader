@@ -26,6 +26,7 @@ import extension.signProperties
 
 plugins {
     id("seeneva.android-application-conventions")
+    alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -149,6 +150,11 @@ android {
 //    }
 }
 
+ksp {
+    arg("KOIN_CONFIG_CHECK", "true")
+    arg("KOIN_DEFAULT_MODULE", "false")
+}
+
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
@@ -171,6 +177,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.livedata)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.lifecycle.java8)
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.constraintlayout)
@@ -185,9 +192,12 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(platform(libs.koin.bom))
+    implementation(platform(libs.koin.annotations.bom))
     implementation(libs.koin.compose)
+    implementation(libs.koin.annotations)
     implementation(libs.koin.android)
     implementation(libs.koin.android.workmanager)
+    ksp(libs.koin.ksp)
 
     implementation(libs.tinylog.api)
     implementation(libs.tinylog.impl)

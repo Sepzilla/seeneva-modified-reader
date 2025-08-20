@@ -19,13 +19,13 @@
 package app.seeneva.reader.logic.comic
 
 /**
- * Modes for adding comic books into user's library
+ * Methods for adding comic books into user's library
  */
-enum class AddComicBookMode {
+enum class AddComicBookMethod {
     /**
      * Request persist permissions to the provided content
      */
-    Import,
+    LINK,
 
     /**
      * Move file content into app folder

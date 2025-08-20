@@ -37,7 +37,7 @@ import app.seeneva.reader.di.koinLifecycleScope
 import app.seeneva.reader.extension.getSerializableExtraCompat
 import app.seeneva.reader.extension.humanDescription
 import app.seeneva.reader.extension.success
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.entity.ComicAddResult
 import app.seeneva.reader.logic.entity.FileData
 import app.seeneva.reader.service.BaseForegroundService
@@ -212,7 +212,7 @@ class AddComicBookService :
     ) : Binder(), AddComicBookServiceBinder {
         override fun add(
             paths: List<Uri>,
-            addComicBookMode: AddComicBookMode,
+            addComicBookMethod: AddComicBookMethod,
             openFlags: Int
         ): Flow<ComicAddResult> {
             if (paths.isEmpty()) {
@@ -223,7 +223,7 @@ class AddComicBookService :
             paths.forEach { path ->
                 ContextCompat.startForegroundService(
                     context,
-                    openComicBookIntent(context, path, addComicBookMode, openFlags)
+                    openComicBookIntent(context, path, addComicBookMethod, openFlags)
                 )
             }
 
@@ -262,13 +262,13 @@ class AddComicBookService :
         private fun openComicBookIntent(
             context: Context,
             path: Uri,
-            addComicBookMode: AddComicBookMode,
+            addComicBookMethod: AddComicBookMethod,
             openFlags: Int
         ): Intent {
             //add flags to move read permissions from Activity to Service component
             return Intent(context, AddComicBookService::class.java)
                 .setAction(ACTION_OPEN)
-                .putExtra(EXTRA_OPEN_MODE, addComicBookMode)
+                .putExtra(EXTRA_OPEN_MODE, addComicBookMethod)
                 .setFlags(openFlags)
                 .setData(path)
         }
@@ -296,7 +296,7 @@ class AddComicBookService :
         /**
          * Extract open mode from intent
          */
-        private fun Intent.extractOpenMode(): AddComicBookMode {
+        private fun Intent.extractOpenMode(): AddComicBookMethod {
             return requireNotNull(getSerializableExtraCompat(EXTRA_OPEN_MODE))
         }
 
@@ -320,10 +320,10 @@ interface AddComicBookServiceBinder {
      */
     suspend fun add(
         path: Uri,
-        addComicBookMode: AddComicBookMode,
+        addComicBookMethod: AddComicBookMethod,
         openFlags: Int
     ): ComicAddResult {
-        return add(listOf(path), addComicBookMode, openFlags).first()
+        return add(listOf(path), addComicBookMethod, openFlags).first()
     }
 
     /**
@@ -334,7 +334,7 @@ interface AddComicBookServiceBinder {
      */
     fun add(
         paths: List<Uri>,
-        addComicBookMode: AddComicBookMode,
+        addComicBookMethod: AddComicBookMethod,
         openFlags: Int
     ): Flow<ComicAddResult>
 

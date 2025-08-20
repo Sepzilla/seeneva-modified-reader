@@ -7,8 +7,6 @@
     <string name="comic_tag_completed">Abgeschlossen</string>
     <string name="add_mode_link_descr">Ein Comicbuch wird ohne Kopieren hinzugefügt. Wenn du aber die Anwendung, mit der es geöffnet wurde, löschen, dann wird das Comicbuch zum Lesen unzugänglich.</string>
     <string name="add_mode_link">Link</string>
-    <string name="add_mode_import_descr">Eine Comicdatei wird in den inneren Ordner der Anwendung kopiert</string>
-    <string name="add_mode_import">Importieren</string>
     <string name="filter_comic_file_status_corrupted">Beschädigt</string>
     <string name="filter_comic_file_status_any">Irgendein</string>
     <string name="filter_comic_file_status_title">Dateistatus</string>

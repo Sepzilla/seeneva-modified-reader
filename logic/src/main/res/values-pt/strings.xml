@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="add_mode_import_descr">Um ficheiro de banda desenhada será copiado para a pasta interna da app</string>
     <string name="sort_comic_list_time_asc">Mais recente por último</string>
     <string name="sort_comic_list_time_desc">Mais recente primeiro</string>
     <string name="sort_comic_list_name_asc">Título (A..Z)</string>
@@ -11,7 +10,6 @@
     <string name="filter_comic_completed_not">Não completo</string>
     <string name="filter_comic_file_status_title">Estado do ficheiro</string>
     <string name="filter_comic_file_status_corrupted">Corrompido</string>
-    <string name="add_mode_import">Importar</string>
     <string name="add_mode_link">Link</string>
     <string name="comic_tag_completed">Concluído</string>
     <string name="comic_tag_removed">Removido</string>

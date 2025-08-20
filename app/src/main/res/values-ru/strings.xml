@@ -104,6 +104,11 @@
 
     <string name="comic_info_err">Упс. Произошла ошибка 😨</string>
 
+    <string name="comic_add_method_title">Способ</string>
+    <string name="comic_add_method_description">Подробнее о доступных способах</string>
+    <string name="comic_add_remember">Запомнить</string>
+    <string name="comic_add_label">Добавить</string>
+
     <string name="rename_err_empty_title">Не может быть пустым</string>
 
     <string name="open_comic_service_descr">Извлекает метаданные из комикса</string>

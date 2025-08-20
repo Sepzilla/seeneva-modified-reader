@@ -19,7 +19,8 @@
 package app.seeneva.reader.ui.screen.library.state
 
 import android.net.Uri
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.library.LibraryManager
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import com.arkivanov.mvikotlin.core.store.Store
 import com.arkivanov.mvikotlin.core.store.StoreFactory
 import com.arkivanov.mvikotlin.extensions.coroutines.coroutineExecutorFactory
@@ -31,21 +32,25 @@ object LibraryAddComicBookContract {
         data object Empty : State
 
         data class Pending(
-            val mode: AddComicBookMode,
+            val mode: AddComicBookMethod,
             val paths: List<Uri> = emptyList(),
             val permissionFlags: Int = 0
         ) : State
     }
 
     sealed interface Intent {
-        data class SelectMode(val mode: AddComicBookMode) : Intent, Msg
+        data class SelectMode(val mode: AddComicBookMethod) : Intent, Msg
         data class SelectPath(val paths: List<Uri>, val permissionFlags: Int) : Intent, Msg
         data object Clear : Intent, Msg
+        data object AddToLibrary : Intent
     }
 
     private sealed interface Msg
 
-    fun createStore(storeFactory: StoreFactory) =
+    fun createStore(
+        storeFactory: StoreFactory,
+        libraryManager: LibraryManager,
+    ) =
         storeFactory.create<Intent, Nothing, Msg, State, Nothing>(
             name = "LibraryAddComicBookStore",
             initialState = State.Empty,
@@ -60,6 +65,16 @@ object LibraryAddComicBookContract {
 
                 onIntent<Intent.Clear> {
                     dispatch(it)
+                }
+
+                onIntent<Intent.AddToLibrary> {
+                    val state = state()
+
+                    dispatch(Intent.Clear)
+
+                    if (state is State.Pending && state.paths.isNotEmpty()) {
+                        libraryManager.add(state.paths, state.mode)
+                    }
                 }
             },
             reducer = { msg ->

@@ -27,10 +27,9 @@
     <string name="filter_comic_file_status_title">По статусу файла</string>
     <string name="filter_comic_file_status_any">Любые</string>
     <string name="filter_comic_file_status_corrupted">Повреждённые</string>
-    <string name="add_mode_import">Импортировать</string>
-    <string name="add_mode_import_descr">Комикс будет скопирован во внутреннюю директорию приложения</string>
     <string name="add_mode_link">Связать</string>
     <string name="add_mode_link_descr">Комикс будет добавлен без копирования. Но если удалить приложение, которым он был открыт, то комикс станет недоступен для чтения.</string>
+    <string name="add_mode_copy">Скопировать</string>
     <string name="comic_tag_completed">Прочитанные</string>
     <string name="comic_tag_removed">Убранные</string>
     <string name="comic_tag_corrupted">Повреждённые</string>

@@ -8,8 +8,6 @@
     <string name="filter_comic_file_status_title">文件状况</string>
     <string name="filter_comic_file_status_any">不筛选</string>
     <string name="filter_comic_file_status_corrupted">文件损坏</string>
-    <string name="add_mode_import">导入文件</string>
-    <string name="add_mode_import_descr">把漫画书复制到本应用的内部文件夹里</string>
     <string name="comic_tag_completed">完成</string>
     <string name="comic_tag_removed">已经移走了</string>
     <string name="comic_tag_corrupted">文件损坏了</string>

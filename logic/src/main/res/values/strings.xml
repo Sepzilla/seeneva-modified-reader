@@ -32,10 +32,10 @@
     <string name="filter_comic_file_status_any">Any</string>
     <string name="filter_comic_file_status_corrupted">Corrupted</string>
 
-    <string name="add_mode_import">Import</string>
-    <string name="add_mode_import_descr">A comic book file will be copied into the app\'s inner folder</string>
     <string name="add_mode_link">Link</string>
-    <string name="add_mode_link_descr">A comic book will be added without copying. But if you delete the application with which it was opened, then the comic book will become inaccessible for reading.</string>
+    <string name="add_mode_link_descr">When you add a comic book using the link method, the app creates a shortcut to the file. The file stays in its original location, and the app accesses it through Android\'s document provider.\nThis means:\n• The file isn\'t copied or moved.\n• You can still find it in its original location.\n• But, if you delete the app or storage location that the file is linked to, you won\'t be able to read the comic book anymore.</string>
+    <string name="add_mode_copy">Copy</string>
+    <string name="add_mode_copy_descr">A comic book file will be copied into the app\'s inner folder</string>
 
     <string name="comic_tag_completed">Completed</string>
     <string name="comic_tag_removed">Removed</string>

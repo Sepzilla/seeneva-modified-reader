@@ -29,7 +29,7 @@ import app.seeneva.reader.data.source.local.db.LocalTransactionRunner
 import app.seeneva.reader.data.source.local.db.dao.ComicBookSource
 import app.seeneva.reader.data.source.local.db.dao.ComicTagSource
 import app.seeneva.reader.data.source.local.db.entity.SimpleComicBookWithTags
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.comic.LibraryFileManager
 import app.seeneva.reader.logic.entity.*
 import app.seeneva.reader.logic.extension.getHardcodedTagId
@@ -47,7 +47,7 @@ import org.tinylog.kotlin.Logger
 internal interface AddingUseCase {
     suspend fun add(
         fileData: FullFileData,
-        addMode: AddComicBookMode,
+        addMode: AddComicBookMethod,
     ): ComicAddResult
 }
 
@@ -66,7 +66,7 @@ internal class AddingUseCaseImpl(
 
     override suspend fun add(
         fileData: FullFileData,
-        addMode: AddComicBookMode,
+        addMode: AddComicBookMethod,
     ): ComicAddResult {
         Logger.debug("Add comic into library by uri: '${fileData.path}'")
 
@@ -158,7 +158,7 @@ internal class AddingUseCaseImpl(
      */
     private suspend fun simpleAdding(
         fileData: SimpleFileData,
-        addMode: AddComicBookMode,
+        addMode: AddComicBookMethod,
         interpreter: Interpreter
     ) {
         io {
@@ -193,7 +193,7 @@ internal class AddingUseCaseImpl(
     private suspend fun replace(
         toReplace: SimpleComicBookWithTags,
         fileData: SimpleFileData,
-        addMode: AddComicBookMode,
+        addMode: AddComicBookMethod,
         interpreter: Interpreter
     ) {
         io {
@@ -227,7 +227,7 @@ internal class AddingUseCaseImpl(
     private suspend fun fix(
         fix: SimpleComicBookWithTags,
         fileData: SimpleFileData,
-        addMode: AddComicBookMode
+        addMode: AddComicBookMethod
     ) {
         io {
             val fixedPath = fileManager.replace(fix.filePath, fileData, addMode)

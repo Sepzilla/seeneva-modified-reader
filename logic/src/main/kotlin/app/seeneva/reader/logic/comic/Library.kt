@@ -46,7 +46,7 @@ interface Library {
      */
     suspend fun add(
         fileData: FullFileData,
-        addMode: AddComicBookMode,
+        addMode: AddComicBookMethod,
     ): ComicAddResult
 
     /**
@@ -102,7 +102,7 @@ internal class LibraryImpl(
 
     override val state = MutableStateFlow(Library.State.IDLE)
 
-    override suspend fun add(fileData: FullFileData, addMode: AddComicBookMode): ComicAddResult {
+    override suspend fun add(fileData: FullFileData, addMode: AddComicBookMethod): ComicAddResult {
         Logger.debug("Add comic into adding queue by uri: '${fileData.path}'")
 
         return mutex.withStateLock(Library.State.CHANGING) {

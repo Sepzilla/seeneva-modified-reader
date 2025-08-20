@@ -55,6 +55,8 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.workmanager.dsl.worker
 import org.koin.androidx.workmanager.koin.workManagerFactory
 import org.koin.core.KoinApplication
+import org.koin.core.annotation.ComponentScan
+import org.koin.core.annotation.Module
 import org.koin.core.module.dsl.*
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
@@ -62,19 +64,22 @@ import org.koin.core.qualifier.qualifier
 import org.koin.dsl.ScopeDSL
 import org.koin.dsl.module
 import org.koin.dsl.onClose
+import org.koin.ksp.generated.module
 import app.seeneva.reader.logic.di.Module as LogicModule
 
 enum class Name {
     VIEWER_RETAIN_SCOPE
 }
 
-object Module {
+object AppModule {
     private val app = module {
         single<Dispatchers> { AppDispatchers }
 
         single<SyncManager> { SyncWorkManager(WorkManager.getInstance(androidApplication())) }
 
         singleOf(::DefaultStoreFactory) withOptions { bind<StoreFactory>() }
+
+        single { WorkManager.getInstance(androidApplication()) }
 
         worker { SyncWorker(get(), get(), inject()) }
 
@@ -228,7 +233,10 @@ object Module {
 
         viewModel {
             val libraryAddComicBookParamStore =
-                LibraryAddComicBookContract.createStore(storeFactory = get())
+                LibraryAddComicBookContract.createStore(
+                    storeFactory = get(),
+                    libraryManager = get(),
+                )
 
             LibraryViewModel(
                 libraryListStore = LibraryListStoreContract.createStore(
@@ -290,8 +298,12 @@ object Module {
     }
 }
 
+@Module
+@ComponentScan(value = ["app.seeneva.reader"])
+class AppDefaultModule
+
 fun KoinApplication.setup(app: Application) {
     androidContext(app)
     workManagerFactory()
-    modules(Module.main)
+    modules(AppModule.main, AppDefaultModule().module)
 }

@@ -23,16 +23,17 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.comic.ComicHelper.persistPermissions
 
 /**
  * Open comic book system chooser [ActivityResultContract]
- * Allows to choose between adding modes described in [AddComicBookMode]
+ * Allows to choose between adding modes described in [AddComicBookMethod]
  * Will return null output in case if opening was cancelled
  */
-class ChooseComicBookContract : ActivityResultContract<AddComicBookMode, ChooseComicBookResult?>() {
-    override fun createIntent(context: Context, input: AddComicBookMode): Intent {
+class ChooseComicBookContract :
+    ActivityResultContract<AddComicBookMethod, ChooseComicBookResult?>() {
+    override fun createIntent(context: Context, input: AddComicBookMethod): Intent {
         val baseOpenIntent =
             Intent().addCategory(Intent.CATEGORY_OPENABLE) //without it you can receive a "virtual" file
                 .setFlags(persistPermissions)
@@ -41,10 +42,10 @@ class ChooseComicBookContract : ActivityResultContract<AddComicBookMode, ChooseC
         //.putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/x-cbr"))
 
         return when (input) {
-            AddComicBookMode.Copy ->
+            AddComicBookMethod.Copy ->
                 baseOpenIntent.setAction(Intent.ACTION_GET_CONTENT)
 
-            AddComicBookMode.Import ->
+            AddComicBookMethod.LINK ->
                 baseOpenIntent.setAction(Intent.ACTION_OPEN_DOCUMENT)
                     .addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
 

@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package app.seeneva.reader.ui.screen.library
 
@@ -27,16 +28,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -45,18 +50,18 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.integerResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.paging.PagingData
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.seeneva.reader.R
 import app.seeneva.reader.logic.ComicListViewType
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.entity.ComicListItem
 import app.seeneva.reader.logic.image.ImageLoader
 import app.seeneva.reader.logic.results.ChooseComicBookContract
@@ -64,6 +69,7 @@ import app.seeneva.reader.logic.results.ChooseComicBookResult
 import app.seeneva.reader.screen.list.adapter.ComicsAdapter
 import app.seeneva.reader.ui.screen.library.model.LibraryAction
 import app.seeneva.reader.ui.screen.library.state.LibraryListStoreContract
+import app.seeneva.reader.ui.theme.SeenevaTheme
 import app.seeneva.reader.ui.widget.CheckboxWithText
 import app.seeneva.reader.ui.widget.RadioButtonWithText
 import kotlinx.coroutines.flow.Flow
@@ -91,11 +97,11 @@ fun LibraryScreen(
     }
 
     val topBarBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val snackbarState = remember { SnackbarHostState() }
+    val snackBarState = remember { SnackbarHostState() }
 
     CollectSideEffects(
         sideEffects = libraryViewModel.sideEffects,
-        snackbarState = snackbarState,
+        snackBarState = snackBarState,
         onNoComicBookSelector = {
             libraryViewModel.sendIntent(LibraryIntent.ProcessNoLibrarySelector)
         },
@@ -147,7 +153,7 @@ fun LibraryScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarState) },
+        snackbarHost = { SnackbarHost(hostState = snackBarState) },
         modifier = Modifier.nestedScroll(connection = topBarBehavior.nestedScrollConnection)
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {
@@ -157,12 +163,22 @@ fun LibraryScreen(
                 }
 
                 is LibraryState.Loaded -> {
-                    LibraryList(
-                        pagingData = state.pagingData,
-                        viewType = state.viewType,
-                        isSyncing = state.isSyncing,
+                    LoadedState(
+                        state = state,
+                        showAddComicBookModeSheet = showAddComicBookModeSheet,
                         onStartSyncing = {
                             libraryViewModel.sendIntent(LibraryIntent.SyncLibrary)
+                        },
+                        onAddingConfirmed = { mode, remember ->
+                            libraryViewModel.sendIntent(
+                                LibraryIntent.OpenLibrarySelector(
+                                    mode = mode,
+                                    remember = remember,
+                                )
+                            )
+                        },
+                        onAddComicBookModeSheetDismiss = {
+                            showAddComicBookModeSheet = false
                         }
                     )
                 }
@@ -173,20 +189,28 @@ fun LibraryScreen(
             }
         }
     }
+}
 
-    if (showAddComicBookModeSheet) {
-        PickAddComicBookModeBottomSheet(
-            onModeSelected = { mode, remember ->
-                libraryViewModel.sendIntent(
-                    LibraryIntent.OpenLibrarySelector(
-                        mode = mode,
-                        remember = remember,
-                    )
-                )
-            },
-            onDismiss = { showAddComicBookModeSheet = false }
-        )
-    }
+@Composable
+private fun BoxScope.LoadedState(
+    state: LibraryState.Loaded,
+    showAddComicBookModeSheet: Boolean = false,
+    onStartSyncing: () -> Unit = {},
+    onAddingConfirmed: (mode: AddComicBookMethod, remember: Boolean) -> Unit = { _, _ -> },
+    onAddComicBookModeSheetDismiss: () -> Unit = {}
+) {
+    LibraryList(
+        pagingData = state.pagingData,
+        viewType = state.viewType,
+        isSyncing = state.isSyncing,
+        onStartSyncing = onStartSyncing
+    )
+
+    PickAddComicBookMethodBottomSheet(
+        show = showAddComicBookModeSheet,
+        onModeSelected = onAddingConfirmed,
+        onDismiss = onAddComicBookModeSheetDismiss
+    )
 }
 
 /**
@@ -197,7 +221,6 @@ fun LibraryScreen(
  * @param onMenuClick on menu icon click
  * @param onSearchValueChange on search value change
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryTopAppBar(
     searchValue: String = "",
@@ -255,7 +278,6 @@ private fun LibraryTopAppBar(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryList(
     pagingData: PagingData<ComicListItem>,
@@ -263,7 +285,6 @@ private fun LibraryList(
     isSyncing: Boolean = false,
     onStartSyncing: () -> Unit = {}
 ) {
-
     PullToRefreshBox(
         isRefreshing = isSyncing,
         onRefresh = onStartSyncing
@@ -345,6 +366,7 @@ private fun LibraryList(
             },
             onRelease = { recyclerView ->
                 recyclerView.adapter = null
+                recyclerView.layoutManager = null
             }
         ) { recyclerView ->
             val adapter = recyclerView.adapter as ComicsAdapter
@@ -393,7 +415,7 @@ private fun BottomBar(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 private fun BottomBarAction(
     action: LibraryAction,
@@ -447,85 +469,148 @@ private fun BottomBarAction(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PickAddComicBookModeBottomSheet(
-    onModeSelected: (mode: AddComicBookMode, remember: Boolean) -> Unit = { _, _ -> },
+private fun PickAddComicBookMethodBottomSheet(
+    show: Boolean = false,
+    bottomSheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    onModeSelected: (mode: AddComicBookMethod, remember: Boolean) -> Unit = { _, _ -> },
     onDismiss: () -> Unit = {}
 ) {
-    var selectedMode by remember { mutableStateOf(AddComicBookMode.Import) }
-    var rememberMode by remember { mutableStateOf(false) }
+    if (!show) {
+        return
+    }
+
+    var selectedAddingMethod by remember { mutableStateOf(AddComicBookMethod.LINK) }
+    var rememberAddingMethod by remember { mutableStateOf(false) }
+    var showAddingMethodInfo by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
 
-    val sheetState = rememberModalBottomSheetState()
-
-    @Composable
-    fun ModeButton(mode: AddComicBookMode) {
-        RadioButtonWithText(
-            modifier = Modifier.fillMaxWidth(),
-            text = "Import",
-            selected = selectedMode == mode,
-            onClick = { selectedMode = mode }
-        )
-    }
-
     ModalBottomSheet(
-        sheetState = sheetState,
-        onDismissRequest = onDismiss
+        sheetState = bottomSheetState,
+        onDismissRequest = onDismiss,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
                 modifier = Modifier.padding(horizontal = 16.dp),
-                text = "Mode",
-                style = MaterialTheme.typography.labelLarge,
-            )
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.comic_add_method_title),
+                    style = MaterialTheme.typography.labelLarge,
+                )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                FilledTonalIconButton(
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(),
+                    onClick = { showAddingMethodInfo = true }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(16.dp),
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = stringResource(R.string.comic_add_method_description)
+                    )
+                }
+            }
 
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 tonalElevation = 2.dp
             ) {
                 Column(modifier = Modifier.selectableGroup()) {
-                    AddComicBookMode.entries.forEach { mode ->
-                        ModeButton(mode = mode)
+                    AddComicBookMethod.entries.forEach { method ->
+                        RadioButtonWithText(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = method.title(),
+                            selected = selectedAddingMethod == method,
+                            onClick = { selectedAddingMethod = method }
+                        )
                     }
                 }
             }
-        }
 
-        CheckboxWithText(
-            modifier = Modifier.fillMaxWidth(),
-            checked = rememberMode,
-            onCheckedChange = {
-                rememberMode = !rememberMode
-            },
-            text = "Remember"
-        )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                CheckboxWithText(
+                    checked = rememberAddingMethod,
+                    onCheckedChange = {
+                        rememberAddingMethod = !rememberAddingMethod
+                    },
+                    text = stringResource(R.string.comic_add_remember)
+                )
 
-        Button(
-            onClick = {
-                onModeSelected(selectedMode, rememberMode)
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Button(
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        onClick = {
+                            onModeSelected(selectedAddingMethod, rememberAddingMethod)
 
-                coroutineScope.launch {
-                    try {
-                        sheetState.hide()
-                    } finally {
-                        onDismiss()
+                            coroutineScope.launch {
+                                try {
+                                    bottomSheetState.hide()
+                                } finally {
+                                    onDismiss()
+                                }
+                            }
+                        }
+                    ) {
+                        Text(text = stringResource(R.string.comic_add_label))
                     }
                 }
             }
-        ) {
-            Text(text = "Add")
         }
     }
+
+    if (showAddingMethodInfo) {
+        AboutAddingMethodsDialog(
+            onDismiss = { showAddingMethodInfo = false }
+        )
+    }
+}
+
+@Composable
+private fun AboutAddingMethodsDialog(
+    onDismiss: () -> Unit = {}
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.all_ok))
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(state = rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AddComicBookMethod.entries.forEach { method ->
+                    Text(
+                        text = method.title(),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Text(method.description())
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+        }
+    )
 }
 
 /**
  * Collect screen side effects
  * @param sideEffects side effects flow
- * @param snackbarState snackbar state
+ * @param snackBarState snackBar state
  * @param onNoComicBookSelector function will be called if no comic book selector is available
  * @param onComicBookSelectorResult function will be called on comic book selector result
  * @param onAddToLibrary function will be called when comic book is ready to be added to the library
@@ -533,7 +618,7 @@ private fun PickAddComicBookModeBottomSheet(
 @Composable
 private fun CollectSideEffects(
     sideEffects: Flow<LibrarySideEffect>,
-    snackbarState: SnackbarHostState,
+    snackBarState: SnackbarHostState,
     onComicBookSelectorResult: (ChooseComicBookResult?) -> Unit = {},
     onNoComicBookSelector: () -> Unit = {},
     onAddToLibrary: () -> Unit = {}
@@ -543,16 +628,17 @@ private fun CollectSideEffects(
 
     val permissionLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-            // We do not care if the permission was granted or not, add the selected comioc book anyway
+            // We do not care if the permission was granted or not, add the selected comic book anyway
             onAddToLibrary()
         }
 
     val comicBookChooserLauncher =
         rememberLauncherForActivityResult(ChooseComicBookContract(), onComicBookSelectorResult)
 
-    LaunchedEffect(sideEffects, lifecycleOwner, snackbarState) {
-        lifecycleOwner.repeatOnLifecycle(state = Lifecycle.State.STARTED) {
-            sideEffects.collectLatest { sideEffect ->
+    LaunchedEffect(sideEffects, lifecycleOwner, snackBarState) {
+        sideEffects
+            .flowWithLifecycle(lifecycleOwner.lifecycle)
+            .collectLatest { sideEffect ->
                 when (sideEffect) {
                     is LibrarySideEffect.ShowLibrarySelector -> {
                         if (!sideEffect.handle(comicBookChooserLauncher)) {
@@ -561,7 +647,7 @@ private fun CollectSideEffects(
                     }
 
                     is LibraryListStoreContract.Label.ShowInstallLibrarySelectorMsg -> {
-                        sideEffect.handle(context, snackbarState)
+                        sideEffect.handle(context, snackBarState)
                     }
 
                     is LibraryListStoreContract.Label.RequestLibraryPermission -> {
@@ -569,18 +655,44 @@ private fun CollectSideEffects(
                     }
 
                     LibraryListStoreContract.Label.OnAddLibraryStarted -> {
-                        snackbarState.showSnackbar(
+                        snackBarState.showSnackbar(
                             message = context.getString(R.string.comic_list_message_add_progress)
                         )
                     }
                 }
             }
-        }
     }
 }
 
+/**
+ * @return a title of the method
+ */
+@Composable
+fun AddComicBookMethod.title(): String =
+    stringResource(
+        when (this) {
+            AddComicBookMethod.LINK ->
+                app.seeneva.reader.logic.R.string.add_mode_link
+
+            AddComicBookMethod.Copy ->
+                app.seeneva.reader.logic.R.string.add_mode_copy
+        }
+    )
+
+@Composable
+fun AddComicBookMethod.description(): String =
+    stringResource(
+        when (this) {
+            AddComicBookMethod.LINK ->
+                app.seeneva.reader.logic.R.string.add_mode_link_descr
+
+            AddComicBookMethod.Copy ->
+                app.seeneva.reader.logic.R.string.add_mode_copy_descr
+        }
+    )
+
 private fun LibrarySideEffect.ShowLibrarySelector.handle(
-    comicBookChooserLauncher: ActivityResultLauncher<AddComicBookMode>,
+    comicBookChooserLauncher: ActivityResultLauncher<AddComicBookMethod>,
 ): Boolean {
     Logger.debug { "Start comic book selector with adding mode: '${mode}'" }
 
@@ -595,9 +707,9 @@ private fun LibrarySideEffect.ShowLibrarySelector.handle(
 
 private suspend fun LibrarySideEffect.ShowInstallLibrarySelectorMsg.handle(
     context: Context,
-    snackbarState: SnackbarHostState
+    snackBarState: SnackbarHostState
 ) {
-    val result = snackbarState.showSnackbar(
+    val result = snackBarState.showSnackbar(
         message = context.getString(R.string.comic_list_error_no_file_manager),
         actionLabel = installIntent?.let { context.getString(R.string.install) },
         duration = SnackbarDuration.Short,
@@ -614,4 +726,15 @@ private fun LibrarySideEffect.RequestLibraryPermission.handle(
     Logger.debug { "Request Android permission: '${permission}'" }
 
     permissionLauncher.launch(permission)
+}
+
+@Preview
+@Composable
+private fun PickAddComicBookModeBottomSheetPreview() {
+    SeenevaTheme {
+        PickAddComicBookMethodBottomSheet(
+            show = true,
+            bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Expanded)
+        )
+    }
 }

@@ -11,9 +11,10 @@ androidx-paging = "3.0.0"
 androidx-room = "2.6.1"
 androidx-activity = "1.9.3"
 androidx-fragment = "1.8.5"
-tinylog = "2.3.1"
+koin-annotations = "2.0.0"
 mockk = "1.13.12"
 mvikotlin = "4.3.0"
+tinylog = "2.3.1"
 
 [libraries]
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
@@ -39,6 +40,7 @@ androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayo
 androidx-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-service = { module = "androidx.lifecycle:lifecycle-service", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-livedata = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-java8 = { module = "androidx.lifecycle:lifecycle-common-java8", version.ref = "androidx-lifecycle" }
 androidx-paging-common = { module = "androidx.paging:paging-common-ktx", version.ref = "androidx-paging" }
@@ -53,9 +55,10 @@ androidx-test-core = { module = "androidx.test:core-ktx", version = "1.6.1" }
 androidx-test-junit = { module = "androidx.test.ext:junit-ktx", version = "1.2.1" }
 material = { module = "com.google.android.material:material", version = "1.12.0" }
 android-javaDesugar = { module = "com.android.tools:desugar_jdk_libs", version = "2.1.5" }
-koin-bom = { module = "io.insert-koin:koin-bom", version = "4.0.1" }
-#koin-annotations = { module = "io.insert-koin:koin-annotations" }
-#koin-ksp = { module = "io.insert-koin:koin-ksp-compiler" }
+koin-bom = { module = "io.insert-koin:koin-bom", version = "4.0.2" }
+koin-annotations-bom = { module = "io.insert-koin:koin-annotations-bom", version.ref = "koin-annotations" }
+koin-annotations = { module = "io.insert-koin:koin-annotations" }
+koin-ksp = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koin-annotations" }
 koin-compose = { module = "io.insert-koin:koin-androidx-compose" }
 koin-android = { module = "io.insert-koin:koin-android" }
 koin-android-workmanager = { module = "io.insert-koin:koin-androidx-workmanager" }
@@ -80,5 +83,5 @@ android-application = { id = "com.android.application", version.ref = "android-g
 android-library = { id = "com.android.library", version.ref = "android-gradle-plugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-ksp = { id = "com.google.devtools.ksp", version = "2.0.21-1.0.27" }
+ksp = { id = "com.google.devtools.ksp", version = "2.0.21-1.0.28" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

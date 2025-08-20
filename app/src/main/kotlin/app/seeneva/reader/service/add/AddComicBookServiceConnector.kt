@@ -21,7 +21,7 @@ package app.seeneva.reader.service.add
 import android.content.Context
 import android.net.Uri
 import app.seeneva.reader.common.coroutines.Dispatchers
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.entity.ComicAddResult
 import app.seeneva.reader.service.BaseServiceConnector
 import kotlinx.coroutines.Job
@@ -38,10 +38,10 @@ interface AddComicBookServiceConnector {
      */
     suspend fun add(
         path: Uri,
-        addComicBookMode: AddComicBookMode,
+        addComicBookMethod: AddComicBookMethod,
         openFlags: Int
     ): ComicAddResult {
-        return add(listOf(path), addComicBookMode, openFlags).single()
+        return add(listOf(path), addComicBookMethod, openFlags).single()
     }
 
     /**
@@ -49,7 +49,7 @@ interface AddComicBookServiceConnector {
      */
     fun add(
         paths: List<Uri>,
-        addComicBookMode: AddComicBookMode,
+        addComicBookMethod: AddComicBookMethod,
         openFlags: Int
     ): Flow<ComicAddResult>
 
@@ -71,13 +71,13 @@ class AddComicBookServiceConnectorImpl(
 ), AddComicBookServiceConnector {
     override fun add(
         paths: List<Uri>,
-        addComicBookMode: AddComicBookMode,
+        addComicBookMethod: AddComicBookMethod,
         openFlags: Int
     ) = binderFlow.transformLatest {
         //We need to prevent Service binder from disconnect
         // so it is really critical to transform this FLow into Service Flow
         if (it is BinderState.Connected<AddComicBookServiceBinder>) {
-            emitAll(it.binder.add(paths, addComicBookMode, openFlags))
+            emitAll(it.binder.add(paths, addComicBookMethod, openFlags))
             //We do not need this SharedFlow anymore. We need to call cancel here to close subscription.
             //If Service doesn't have any work to do and its binder was disconnected it will be destroyed
             currentCoroutineContext().cancel()

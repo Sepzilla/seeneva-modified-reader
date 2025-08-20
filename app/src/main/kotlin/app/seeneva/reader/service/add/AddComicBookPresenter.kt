@@ -21,7 +21,7 @@ package app.seeneva.reader.service.add
 import android.net.Uri
 import app.seeneva.reader.common.coroutines.Dispatchers
 import app.seeneva.reader.common.entity.FileHashData
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.comic.Library
 import app.seeneva.reader.logic.entity.ComicAddResult
 import app.seeneva.reader.logic.entity.FileData
@@ -52,10 +52,10 @@ interface AddComicBookPresenter : Presenter {
      *
      * @param id id of the opening task
      * @param path used to open comic book
-     * @param addComicBookMode adding mode
+     * @param addComicBookMethod adding mode
      * @return true if [path] was accepted and task has been started
      */
-    fun add(id: Int, path: Uri, addComicBookMode: AddComicBookMode): Boolean
+    fun add(id: Int, path: Uri, addComicBookMethod: AddComicBookMethod): Boolean
 
     /**
      * @return all comic book data which add task is started
@@ -87,9 +87,9 @@ class AddComicBookPresenterImpl(
     override fun add(
         id: Int,
         path: Uri,
-        addComicBookMode: AddComicBookMode
+        addComicBookMethod: AddComicBookMethod
     ): Boolean {
-        return tasks.runTask(id, path, addComicBookMode)
+        return tasks.runTask(id, path, addComicBookMethod)
     }
 
     override fun allStartedAddComicData(): List<FileData> {
@@ -147,7 +147,7 @@ class AddComicBookPresenterImpl(
          * 3. Cancel if it is already opening (I want to prevent books duplicates in the user library)
          * 4. Continue opening if not
          */
-        fun runTask(taskId: Int, path: Uri, addMode: AddComicBookMode): Boolean {
+        fun runTask(taskId: Int, path: Uri, addMode: AddComicBookMethod): Boolean {
             if (openTasks.containsKey(path)) {
                 return false
             }
@@ -216,7 +216,7 @@ class AddComicBookPresenterImpl(
         private suspend fun processAdding(
             fileData: FileData,
             fileHashData: FileHashData,
-            addMode: AddComicBookMode,
+            addMode: AddComicBookMethod,
         ) {
             hashes[fileHashData] = fileData.path
 

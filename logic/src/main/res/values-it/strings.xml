@@ -7,8 +7,6 @@
     <string name="comic_tag_completed">Completato</string>
     <string name="add_mode_link_descr">Un fumetto verrà aggiunto senza essere copiato. Ma se elimini l\'applicazione con cui è stato aperto, allora il fumetto diventerà inaccessibile per la lettura.</string>
     <string name="add_mode_link">Collegamento</string>
-    <string name="add_mode_import_descr">Un file di fumetto sarà copiato nella cartella interna dell\'app</string>
-    <string name="add_mode_import">Importa</string>
     <string name="filter_comic_file_status_corrupted">Danneggiato</string>
     <string name="filter_comic_file_status_any">Qualsiasi</string>
     <string name="filter_comic_file_status_title">Stato del file</string>

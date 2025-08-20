@@ -26,7 +26,7 @@ import androidx.savedstate.SavedStateRegistry
 import app.seeneva.reader.common.coroutines.Dispatchers
 import app.seeneva.reader.logic.ComicListViewType
 import app.seeneva.reader.logic.ComicsSettings
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.comic.Library
 import app.seeneva.reader.logic.entity.query.QueryParams
 import app.seeneva.reader.presenter.BasePresenter
@@ -90,7 +90,7 @@ interface ComicsListPresenter : Presenter {
      * @param paths comic book paths
      * @param flags adding flags
      */
-    fun addComicBooks(mode: AddComicBookMode, paths: List<Uri>, flags: Int)
+    fun addComicBooks(mode: AddComicBookMethod, paths: List<Uri>, flags: Int)
 
     companion object {
         private const val COMIC_PAGE_SIZE = 15
@@ -201,7 +201,7 @@ class ComicsListPresenterImpl(
         settings.saveComicListType(listType)
     }
 
-    override fun addComicBooks(mode: AddComicBookMode, paths: List<Uri>, flags: Int) {
+    override fun addComicBooks(mode: AddComicBookMethod, paths: List<Uri>, flags: Int) {
         viewModel.add(paths, mode, flags)
     }
 

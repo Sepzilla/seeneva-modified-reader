@@ -91,6 +91,10 @@
     <string name="comic_info_plot_locations">Locations</string>
     <string name="comic_info_err_cant_find" translatable="false">@string/comic_list_error_view_non_existed</string>
     <string name="comic_info_err">Oops. Error occurred 😨</string>
+    <string name="comic_add_method_title">Method</string>
+    <string name="comic_add_method_description">More about available methods</string>
+    <string name="comic_add_remember">Remember</string>
+    <string name="comic_add_label">Add</string>
     <string name="rename_err_empty_title">Cannot be empty</string>
     <string name="open_comic_service_descr">Extracts comic book metadata</string>
     <string name="notification_channel_foreground_task">User tasks</string>

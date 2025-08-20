@@ -8,8 +8,6 @@
     <string name="comic_tag_removed">Usunięty</string>
     <string name="comic_tag_completed">Ukończony</string>
     <string name="add_mode_link">Link</string>
-    <string name="add_mode_import_descr">Plik komiksu zostanie skopiowany do wewnętrznego folderu aplikacji</string>
-    <string name="add_mode_import">Importuj</string>
     <string name="filter_comic_file_status_corrupted">Uszkodzony</string>
     <string name="filter_comic_file_status_any">Dowolny</string>
     <string name="filter_comic_file_status_title">Status pliku</string>

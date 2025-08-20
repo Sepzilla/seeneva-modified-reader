@@ -35,12 +35,6 @@ android {
     defaultConfig {
         namespace = "app.seeneva.reader.data"
 
-        ksp {
-            arg("room.schemaLocation", "${projectDir.resolve("schemas")}")
-            arg("room.incremental", true.toString())
-            arg("room.expandProjection", true.toString())
-        }
-
         ndk {
             abiFilters += Abi.values().map { it.abiName }
         }
@@ -84,6 +78,12 @@ android {
             }
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "${projectDir.resolve("schemas")}")
+    arg("room.incremental", true.toString())
+    arg("room.expandProjection", true.toString())
 }
 
 dependencies {

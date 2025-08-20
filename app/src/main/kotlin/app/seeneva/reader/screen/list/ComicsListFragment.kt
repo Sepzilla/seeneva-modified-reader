@@ -52,7 +52,7 @@ import app.seeneva.reader.databinding.FragmentComicListBinding
 import app.seeneva.reader.extension.humanDescriptionShort
 import app.seeneva.reader.extension.success
 import app.seeneva.reader.logic.ComicListViewType
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.comic.ComicHelper
 import app.seeneva.reader.logic.entity.ComicAddResult
 import app.seeneva.reader.logic.entity.ComicListItem
@@ -593,7 +593,7 @@ class ComicsListFragment : Fragment(R.layout.fragment_comic_list),
         )
     }
 
-    override fun onAddModeSelected(selectedMode: AddComicBookMode) {
+    override fun onAddModeSelected(selectedMode: AddComicBookMethod) {
         if (!router.showComicBookSelector(selectedMode)) {
             //show install package manager from store message
             val installFileManagerIntent = ComicHelper.installFileManagerIntent

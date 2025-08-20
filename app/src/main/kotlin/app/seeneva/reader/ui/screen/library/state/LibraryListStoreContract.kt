@@ -28,7 +28,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import app.seeneva.reader.logic.ComicListViewType
 import app.seeneva.reader.logic.ComicsSettings
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.comic.ComicHelper
 import app.seeneva.reader.logic.comic.Library
 import app.seeneva.reader.logic.entity.ComicListItem
@@ -137,7 +137,7 @@ object LibraryListStoreContract {
          * @param remember remember selected comic book mode
          */
         data class OpenLibrarySelector(
-            val mode: AddComicBookMode,
+            val mode: AddComicBookMethod,
             val remember: Boolean = false,
         ) : Intent
 
@@ -180,7 +180,7 @@ object LibraryListStoreContract {
          * @param mode selector mode
          */
         data class ShowLibrarySelector(
-            val mode: AddComicBookMode
+            val mode: AddComicBookMethod
         ) : Label
 
         /**
@@ -346,9 +346,10 @@ object LibraryListStoreContract {
 
                     if (addState is LibraryAddComicBookContract.State.Pending && addState.paths.isNotEmpty()) {
                         publish(Label.OnAddLibraryStarted)
+                        libraryAddComicBookParamStore.accept(LibraryAddComicBookContract.Intent.AddToLibrary)
+                    } else {
+                        libraryAddComicBookParamStore.accept(LibraryAddComicBookContract.Intent.Clear)
                     }
-
-                    libraryAddComicBookParamStore.accept(LibraryAddComicBookContract.Intent.Clear)
                 }
             },
             reducer = { msg ->

@@ -26,11 +26,11 @@ import androidx.core.view.plusAssign
 import app.seeneva.reader.R
 import app.seeneva.reader.di.parentFragmentScope
 import app.seeneva.reader.extension.inflate
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.R as LogicR
 
 class AddModeSelectorDialog : BaseDraggableDialog(R.layout.dialog_add_mode_selector) {
-    private val addModes = AddComicBookMode.entries
+    private val addModes = AddComicBookMethod.entries
 
     private val callback by lazy { parentFragmentScope?.getOrNull<Callback>() }
 
@@ -40,7 +40,7 @@ class AddModeSelectorDialog : BaseDraggableDialog(R.layout.dialog_add_mode_selec
         val containerView = view.findViewById<ViewGroup>(R.id.container)
 
         val onModeClickListener = View.OnClickListener {
-            callback?.onAddModeSelected(it.tag as AddComicBookMode)
+            callback?.onAddModeSelected(it.tag as AddComicBookMethod)
 
             dismiss()
         }
@@ -61,21 +61,21 @@ class AddModeSelectorDialog : BaseDraggableDialog(R.layout.dialog_add_mode_selec
     }
 
     interface Callback {
-        fun onAddModeSelected(selectedMode: AddComicBookMode)
+        fun onAddModeSelected(selectedMode: AddComicBookMethod)
     }
 
     private data class AddModeData(val title: CharSequence, val description: CharSequence)
 
-    private val AddComicBookMode.data: AddModeData
+    private val AddComicBookMethod.data: AddModeData
         get() {
             return when (this) {
-                AddComicBookMode.Copy ->
+                AddComicBookMethod.Copy ->
                     AddModeData(
-                        getString(LogicR.string.add_mode_import),
-                        getString(LogicR.string.add_mode_import_descr)
+                        getString(TODO()),
+                        getString(TODO())
                     )
 
-                AddComicBookMode.Import ->
+                AddComicBookMethod.LINK ->
                     AddModeData(
                         getString(LogicR.string.add_mode_link),
                         getString(LogicR.string.add_mode_link_descr)

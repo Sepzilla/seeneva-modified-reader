@@ -79,16 +79,22 @@
             android:parentActivityName="app.seeneva.reader.screen.MainActivity" />
 
         <service
-            android:name="app.seeneva.reader.service.add.AddComicBookService"
-            android:description="@string/open_comic_service_descr"
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:exported="false"
             android:foregroundServiceType="dataSync"
-            android:exported="false" />
+            tools:node="merge" />
 
-        <!-- Needed to set Koin WorkManager https://developer.android.com/topic/libraries/architecture/workmanager/advanced/custom-configuration -->
+        <!-- Needed to set Koin WorkManager https://insert-koin.io/docs/reference/koin-android/workmanager/ -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
-            tools:node="remove" />
+            android:exported="false"
+            tools:node="remove">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

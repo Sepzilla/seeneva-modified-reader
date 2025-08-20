@@ -57,7 +57,7 @@ internal interface LibraryFileManager {
      *
      * @return return a result persisted comic book path. Can different from [fileData] path
      */
-    suspend fun add(fileData: SimpleFileData, addMode: AddComicBookMode): Uri
+    suspend fun add(fileData: SimpleFileData, addMode: AddComicBookMethod): Uri
 
     /**
      * Replace old path with a new one
@@ -66,7 +66,7 @@ internal interface LibraryFileManager {
      * @param addMode mode of adding
      * @return return a result persisted comic book path. Can different from [newFileData] path
      */
-    suspend fun replace(oldPath: Uri, newFileData: SimpleFileData, addMode: AddComicBookMode): Uri
+    suspend fun replace(oldPath: Uri, newFileData: SimpleFileData, addMode: AddComicBookMethod): Uri
 
     /**
      * Return all valid comic book path
@@ -99,13 +99,13 @@ internal class LibraryFileManagerImpl(
         mutex.withLock { removeInner(paths) }
     }
 
-    override suspend fun add(fileData: SimpleFileData, addMode: AddComicBookMode): Uri =
+    override suspend fun add(fileData: SimpleFileData, addMode: AddComicBookMethod): Uri =
         mutex.withLock { addInner(fileData, addMode) }
 
     override suspend fun replace(
         oldPath: Uri,
         newFileData: SimpleFileData,
-        addMode: AddComicBookMode
+        addMode: AddComicBookMethod
     ): Uri =
         mutex.withLock {
             Logger.debug("Replace library path $oldPath with ${newFileData.path}")
@@ -185,7 +185,7 @@ internal class LibraryFileManagerImpl(
         }
     }
 
-    private suspend fun addInner(fileData: SimpleFileData, addMode: AddComicBookMode): Uri {
+    private suspend fun addInner(fileData: SimpleFileData, addMode: AddComicBookMethod): Uri {
         Logger.debug("Add library path ${fileData.path}")
 
         return linkOrAddComicBook(fileData, addMode)
@@ -215,10 +215,10 @@ internal class LibraryFileManagerImpl(
 
     private suspend fun linkOrAddComicBook(
         fileData: SimpleFileData,
-        addMode: AddComicBookMode
+        addMode: AddComicBookMethod
     ): Uri {
         return when (addMode) {
-            AddComicBookMode.Copy -> {
+            AddComicBookMethod.Copy -> {
                 //we should copy comic book into app directory
 
                 //calculate comic book path. Rename target file name if it is already exists in the library
@@ -259,7 +259,7 @@ internal class LibraryFileManagerImpl(
                 targetPath.toUri()
             }
 
-            AddComicBookMode.Import -> {
+            AddComicBookMethod.LINK -> {
                 //it is document. We can link it
                 val success = io {
                     if (DocumentFile.isDocumentUri(context, fileData.path)) {
@@ -275,7 +275,7 @@ internal class LibraryFileManagerImpl(
                     fileData.path
                 } else {
                     //in any case just import a file. It is more user friendly IMHO
-                    linkOrAddComicBook(fileData, AddComicBookMode.Import)
+                    linkOrAddComicBook(fileData, AddComicBookMethod.LINK)
                 }
             }
         }

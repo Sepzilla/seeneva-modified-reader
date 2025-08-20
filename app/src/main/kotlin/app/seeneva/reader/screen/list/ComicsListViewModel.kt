@@ -24,7 +24,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import app.seeneva.reader.common.coroutines.Dispatchers
 import app.seeneva.reader.logic.ComicsSettings
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.comic.Library
 import app.seeneva.reader.logic.entity.ComicAddResult
 import app.seeneva.reader.logic.entity.ComicListItem
@@ -92,15 +92,15 @@ interface ComicsListViewModel {
      * Add comic book into user library
      * @param path comic book path
      */
-    fun add(path: Uri, addComicBookMode: AddComicBookMode, openFlags: Int) {
-        add(listOf(path), addComicBookMode, openFlags)
+    fun add(path: Uri, addComicBookMethod: AddComicBookMethod, openFlags: Int) {
+        add(listOf(path), addComicBookMethod, openFlags)
     }
 
     /**
      * Add comic books into user library
      * @param paths comic books paths
      */
-    fun add(paths: List<Uri>, addComicBookMode: AddComicBookMode, openFlags: Int)
+    fun add(paths: List<Uri>, addComicBookMethod: AddComicBookMethod, openFlags: Int)
 
     /**
      * Change comic books removed state
@@ -188,7 +188,7 @@ class ComicsListViewModelImpl(
         vmScope.launch { library.sync() }
     }
 
-    override fun add(paths: List<Uri>, addComicBookMode: AddComicBookMode, openFlags: Int) {
+    override fun add(paths: List<Uri>, addComicBookMethod: AddComicBookMethod, openFlags: Int) {
         if (paths.isEmpty()) {
             return
         }
@@ -197,7 +197,7 @@ class ComicsListViewModelImpl(
             eventsSender.sendAll(
                 addComicBookServiceConnector.add(
                     paths,
-                    addComicBookMode,
+                    addComicBookMethod,
                     openFlags
                 ).map(::ComicsOpened)
             )

@@ -25,7 +25,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
 import app.seeneva.reader.extension.getSerializableCompat
 import app.seeneva.reader.extension.registerAndRestore
-import app.seeneva.reader.logic.comic.AddComicBookMode
+import app.seeneva.reader.logic.comic.AddComicBookMethod
 import app.seeneva.reader.logic.results.ChooseComicBookContract
 import app.seeneva.reader.logic.results.ChooseComicBookResult
 import app.seeneva.reader.router.ResultRouter
@@ -42,7 +42,7 @@ sealed interface ComicListRouterResult {
      * @param result comic book chose result
      */
     data class AddComicBooks(
-        val mode: AddComicBookMode,
+        val mode: AddComicBookMethod,
         val result: ChooseComicBookResult
     ) : ComicListRouterResult
 
@@ -63,7 +63,7 @@ interface ComicListRouter : ResultRouter<ComicListRouterResult> {
      * @param mode add comic book mode
      * @return true if showed
      */
-    fun showComicBookSelector(mode: AddComicBookMode): Boolean
+    fun showComicBookSelector(mode: AddComicBookMethod): Boolean
 
     /**
      * Show comic book viewer
@@ -81,7 +81,7 @@ class ComicListRouterImpl(
     override val resultFlow: Flow<ComicListRouterResult>
         get() = resultSender.eventState
 
-    private var lastComicSelectorMode: AddComicBookMode? = null
+    private var lastComicSelectorMode: AddComicBookMethod? = null
 
     private val comicBookSelectorLauncher =
         routerContext.registerForActivityResult(ChooseComicBookContract()) {
@@ -118,7 +118,7 @@ class ComicListRouterImpl(
     }
 
     @MainThread
-    override fun showComicBookSelector(mode: AddComicBookMode) =
+    override fun showComicBookSelector(mode: AddComicBookMethod) =
         try {
             Logger.debug { "Start comic book selector with adding mode: '$mode'" }
 
