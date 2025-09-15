@@ -53,7 +53,7 @@ subprojects {
 
     configure<BaseExtension> {
         ndkVersion = "21.4.7075529"
-        buildToolsVersion = "33.0.2"
+        buildToolsVersion = "35.0.0"
 
         compileSdkVersion(33)
 

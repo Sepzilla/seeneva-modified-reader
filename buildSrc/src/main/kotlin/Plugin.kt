@@ -1,6 +1,6 @@
 /*
  *  This file is part of Seeneva Android Reader
- *  Copyright (C) 2021-2023 Sergei Solodovnikov
+ *  Copyright (C) 2021-2025 Sergei Solodovnikov
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,6 @@ object Plugin {
 }
 
 object PluginVersion {
-    const val ANDROID = "8.1.2"
+    const val ANDROID = "8.13.0"
     const val KSP = "${Version.KOTLIN}-1.0.13"
 }
