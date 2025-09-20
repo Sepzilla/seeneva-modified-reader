@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021-2025 Sergei Solodovnikov
+ * Copyright (C) 2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,17 +17,12 @@
  */
 
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    id("seeneva-base-configuration")
-}
-
-android {
-    defaultConfig {
-        namespace = "app.seeneva.reader.common"
-    }
+    `kotlin-dsl`
 }
 
 dependencies {
-    api(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
+
+    compileOnly(libs.pluginartifact.android)
+    compileOnly(libs.pluginartifact.kotlin)
 }

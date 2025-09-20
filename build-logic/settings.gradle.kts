@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021-2025 Sergei Solodovnikov
+ * Copyright (C) 2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,18 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
-plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    id("seeneva-base-configuration")
-}
-
-android {
-    defaultConfig {
-        namespace = "app.seeneva.reader.common"
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        google()
     }
 }
 
-dependencies {
-    api(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
+    repositories {
+        mavenCentral()
+        google()
+    }
+
+    versionCatalogs {
+        register("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
 }

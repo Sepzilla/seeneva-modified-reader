@@ -1,23 +1,26 @@
 /*
- *  This file is part of Seeneva Android Reader
- *  Copyright (C) 2021-2025 Sergei Solodovnikov
+ * This file is part of Seeneva Android Reader
+ * Copyright (C) 2021-2025 Sergei Solodovnikov
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 plugins {
-    id(Plugin.KSP)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+    id("seeneva-base-configuration")
+    alias(libs.plugins.kotlin.ksp)
 }
 
 android {
@@ -25,18 +28,14 @@ android {
     externalNativeBuild {
         cmake {
             path = rootDir.resolve("native/CMakeLists.txt")
-            version = "3.18.1"
+            version = libs.versions.android.cmake.get()
         }
     }
 
     defaultConfig {
-        namespace = "app.seeneva.reader.data"
+        ndkVersion = libs.versions.android.ndk.get()
 
-        ksp {
-            arg("room.schemaLocation", "${projectDir.resolve("schemas")}")
-            arg("room.incremental", true.toString())
-            arg("room.expandProjection", true.toString())
-        }
+        namespace = "app.seeneva.reader.data"
 
         ndk {
             abiFilters += Abi.values().map { it.abiName }
@@ -83,10 +82,18 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "${projectDir.resolve("schemas")}")
+    arg("room.incremental", true.toString())
+    arg("room.expandProjection", true.toString())
+}
+
 dependencies {
     api(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
-    implementation(Deps.ANDROIDX_ROOM_KTX)
+    implementation(project(":common"))
 
-    ksp(Deps.ANDROIDX_ROOM_COMPILER)
+    implementation(libs.androidx.room)
+
+    ksp(libs.androidx.room.compiler)
 }

@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021-2025 Sergei Solodovnikov
+ * Copyright (C) 2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,18 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
-plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    id("seeneva-base-configuration")
-}
+import org.gradle.accessors.dm.LibrariesForLibs
+import org.gradle.api.Project
+import org.gradle.kotlin.dsl.the
 
-android {
-    defaultConfig {
-        namespace = "app.seeneva.reader.common"
-    }
-}
-
-dependencies {
-    api(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-}
+// A workaround for version catalogs
+// https://github.com/gradle/gradle/issues/15383#issuecomment-779893192
+internal val Project.libs: LibrariesForLibs
+    get() = the<LibrariesForLibs>()

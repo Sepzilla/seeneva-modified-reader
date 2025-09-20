@@ -1,19 +1,19 @@
 /*
- *  This file is part of Seeneva Android Reader
- *  Copyright (C) 2021-2023 Sergei Solodovnikov
+ * This file is part of Seeneva Android Reader
+ * Copyright (C) 2021-2025 Sergei Solodovnikov
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 import com.android.build.api.dsl.SigningConfig
@@ -22,9 +22,14 @@ import com.android.build.gradle.BaseExtension
 import com.android.build.gradle.api.ApkVariantOutput
 import com.android.build.gradle.api.ApplicationVariant
 import extension.envOrProperty
+import extension.loadProperties
+import extension.requireEnvOrProperty
 import extension.signProperties
 
 plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    id("seeneva-base-configuration")
 }
 
 // True if this build is running in CI
@@ -65,8 +70,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "app.seeneva.reader"
+        targetSdk = libs.versions.android.sdk.target.get().toInt()
+
         namespace = "app.seeneva.reader"
+
+        applicationId = "app.seeneva.reader"
         // allow to set app id suffix from properties. It is required by CI.
         applicationIdSuffix =
             envOrProperty(extension.ENV_APP_ID_SUFFIX, extension.PROP_APP_ID_SUFFIX)
@@ -74,6 +82,20 @@ android {
         enableShowDonate(true)
 
         missingDimensionStrategy(RustBuildTypeFlavor.NAME, RustBuildTypeFlavor.RUST_RELEASE)
+
+        loadProperties(rootDir.resolve("seeneva.properties")).also { seenevaProperties ->
+            versionCode = requireEnvOrProperty(
+                extension.ENV_VERSION_CODE,
+                extension.PROP_VERSION_CODE,
+                seenevaProperties
+            ).toInt()
+
+            versionName = requireEnvOrProperty(
+                extension.ENV_VERSION_NAME,
+                extension.PROP_VERSION_NAME,
+                seenevaProperties
+            )
+        }
     }
 
     buildTypes {
@@ -149,30 +171,31 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":logic"))
+    implementation(project(":common"))
 
-    implementation(Deps.ANDROIDX_APPCOMPAT)
-    implementation(Deps.ANDROIDX_ACTIVITY_KTX)
-    implementation(Deps.ANDROIDX_VIEW_PAGER)
-    implementation(Deps.ANDROIDX_RECYCLER_VIEW)
-    implementation(Deps.ANDROIDX_RECYCLER_VIEW_SELECTION)
-    implementation(Deps.ANDROIDX_FRAGMENT_KTX)
-    implementation(Deps.ANDROIDX_LIFECYCLE_RUNTIME)
-    implementation(Deps.ANDROIDX_LIFECYCLE_SERVICE)
-    implementation(Deps.ANDROIDX_LIFECYCLE_VIEWMODEL)
-    implementation(Deps.ANDROIDX_LIFECYCLE_LIVEDATA)
-    implementation(Deps.ANDROIDX_LIFECYCLE_JAVA8)
-    implementation(Deps.ANDROIDX_PAGING_RUNTIME)
-    implementation(Deps.ANDROIDX_CONSTRAINT_LAYOUT)
-    implementation(Deps.ANDROIDX_WORK_RUNTIME)
-    implementation(Deps.ANDROIDX_SWIPE_REFRESH_LAYOUT)
-    implementation(Deps.ANDROIDX_MULTIDEX)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.activity)
+    implementation(libs.androidx.viewpager)
+    implementation(libs.androidx.recyclerview)
+    implementation(libs.androidx.recyclerview.selection)
+    implementation(libs.androidx.fragment)
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.lifecycle.viewmodel)
+    implementation(libs.androidx.lifecycle.livedata)
+    implementation(libs.androidx.lifecycle.java8)
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.multidex)
 
-    implementation(Deps.MATERIAL)
+    implementation(libs.google.material)
 
-    implementation(Deps.KOIN_ANDROIDX_VIEWMODEL)
-    implementation(Deps.KOIN_ANDROIDX_WORKMANAGER)
+    implementation(libs.koin.androidx.viewmodel)
+    implementation(libs.koin.androidx.workmanager)
 
-    implementation(Deps.SCALE_IMAGE_VIEW)
+    implementation(libs.scaleimageview)
 }
 
 /**
