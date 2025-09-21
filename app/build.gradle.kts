@@ -18,9 +18,11 @@
 
 import com.android.build.api.dsl.SigningConfig
 import com.android.build.api.dsl.VariantDimension
+import com.android.build.api.variant.ApplicationVariant
+import com.android.build.api.variant.FilterConfiguration
+import com.android.build.api.variant.impl.SigningConfigImpl
+import com.android.build.api.variant.impl.VariantOutputImpl
 import com.android.build.gradle.BaseExtension
-import com.android.build.gradle.api.ApkVariantOutput
-import com.android.build.gradle.api.ApplicationVariant
 import extension.envOrProperty
 import extension.loadProperties
 import extension.requireEnvOrProperty
@@ -158,13 +160,15 @@ android {
         )
     }
 
-    if (buildUsingCI) {
-        applicationVariants.configureEach(::configureOutputName)
-    }
-
 //    testOptions{
 //        unitTests.setIncludeAndroidResources(true)
 //    }
+}
+
+androidComponents {
+    if (buildUsingCI) {
+        onVariants(callback = ::configureOutputName)
+    }
 }
 
 dependencies {
@@ -246,27 +250,31 @@ fun configureOutputName(variant: ApplicationVariant) {
     val abiSplitEnabled = android.splits.abi.isEnable
 
     variant.outputs
-        .withType<ApkVariantOutput>()
-        .configureEach {
-            val outputFilters = filters
-
-            outputFileName = buildString {
-                append("seeneva-${variant.versionName}")
+        .asSequence()
+        .filterIsInstance<VariantOutputImpl>()
+        .forEach { output ->
+            output.outputFileName = buildString {
+                append("seeneva-${output.versionName.get()}")
 
                 if (abiSplitEnabled) {
+                    val abiFilters = output.filters
+                        .filter { it.filterType == FilterConfiguration.FilterType.ABI }
+                        .toList()
+
                     append('-')
-                    append(if (outputFilters.isEmpty()) {
-                        "universal"
-                    } else {
-                        outputFilters.joinToString("-") { it.identifier }
-                    })
+                    append(
+                        if (abiFilters.isEmpty()) {
+                            "universal"
+                        } else {
+                            abiFilters.joinToString("-") { it.identifier }
+                        })
                 }
 
-                if (variant.buildType.isDebuggable) {
+                if (variant.debuggable) {
                     append("-debug")
                 }
 
-                if (!variant.isSigningReady) {
+                if ((variant.signingConfig as? SigningConfigImpl)?.isSigningReady() == false) {
                     append("-unsigned")
                 }
 
