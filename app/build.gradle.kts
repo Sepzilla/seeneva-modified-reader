@@ -188,7 +188,6 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.swiperefreshlayout)
-    implementation(libs.androidx.multidex)
 
     implementation(libs.google.material)
 

@@ -28,9 +28,6 @@ configure<BaseExtension> {
     defaultConfig {
         minSdk = libs.versions.android.sdk.min.get().toInt()
 
-        vectorDrawables.useSupportLibrary = true
-
-        multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

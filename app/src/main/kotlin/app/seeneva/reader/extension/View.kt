@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021 Sergei Solodovnikov
+ * Copyright (C) 2021-2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,14 +13,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 package app.seeneva.reader.extension
 
 import android.graphics.Rect
 import android.graphics.drawable.Drawable
-import android.os.Build
 import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.annotation.IdRes
@@ -33,7 +32,10 @@ import app.seeneva.reader.common.coroutines.Dispatchers
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.flowOn
 import org.koin.core.context.GlobalContext
 import java.lang.ref.WeakReference
 import kotlin.coroutines.resume
@@ -147,25 +149,21 @@ fun View.systemUiVisibilityChange(): Flow<Int> =
  * @see View.OnApplyWindowInsetsListener
  */
 fun View.insetsFlow() =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        singleListenerFlow<WindowInsetsCompat, OnApplyWindowInsetsListener>(
-            initListener = {
-                WeakReference(OnApplyWindowInsetsListener { _, insets ->
-                    trySend(insets)
+    singleListenerFlow<WindowInsetsCompat, OnApplyWindowInsetsListener>(
+        initListener = {
+            WeakReference(OnApplyWindowInsetsListener { _, insets ->
+                trySend(insets)
 
-                    insets
-                })
-            },
-            applyListener = { v, listener ->
-                ViewCompat.setOnApplyWindowInsetsListener(
-                    v,
-                    listener
-                )
-            }
-        )
-    } else {
-        emptyFlow()
-    }
+                insets
+            })
+        },
+        applyListener = { v, listener ->
+            ViewCompat.setOnApplyWindowInsetsListener(
+                v,
+                listener
+            )
+        }
+    )
 
 private inline fun <T, L : Any> View.singleListenerFlow(
     crossinline initListener: ProducerScope<T>.() -> WeakReference<L>,

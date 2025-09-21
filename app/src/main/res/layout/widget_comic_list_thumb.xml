@@ -1,7 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ This file is part of Seeneva Android Reader
-  ~ Copyright (C) 2021 Sergei Solodovnikov
+  ~ Copyright (C) 2021-2025 Sergei Solodovnikov
   ~
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -14,7 +13,7 @@
   ~ GNU General Public License for more details.
   ~
   ~ You should have received a copy of the GNU General Public License
-  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>
   -->
 
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
@@ -61,7 +60,7 @@
             android:visibility="gone"
             app:layout_constraintRight_toRightOf="@id/cover"
             app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_round_completed_18dp"
+            app:src="@drawable/ic_round_completed_18dp"
             tools:visibility="visible" />
 
         <androidx.appcompat.widget.ActionMenuView

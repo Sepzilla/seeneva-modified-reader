@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021 Sergei Solodovnikov
+ * Copyright (C) 2021-2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 package app.seeneva.reader.logic.comic
@@ -22,8 +22,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import java.io.File
 
@@ -63,12 +61,10 @@ object ComicHelper {
             }
 }
 
-@RequiresApi(Build.VERSION_CODES.KITKAT)
 fun ContentResolver.releaseComicPermission(path: Uri) {
     releasePersistableUriPermission(path, ComicHelper.persistPermissions)
 }
 
-@RequiresApi(Build.VERSION_CODES.KITKAT)
 fun ContentResolver.takeComicPermission(path: Uri) {
     takePersistableUriPermission(path, ComicHelper.persistPermissions)
 }

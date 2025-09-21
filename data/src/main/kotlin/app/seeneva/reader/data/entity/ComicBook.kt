@@ -1,25 +1,26 @@
 /*
- *  This file is part of Seeneva Android Reader
- *  Copyright (C) 2021-2023 Sergei Solodovnikov
+ * This file is part of Seeneva Android Reader
+ * Copyright (C) 2021-2025 Sergei Solodovnikov
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 package app.seeneva.reader.data.entity
 
 import android.net.Uri
 import androidx.annotation.Keep
+import androidx.core.net.toUri
 import androidx.room.*
 import app.seeneva.reader.data.source.local.db.converters.FindResultTypeIntConverter
 import app.seeneva.reader.data.source.local.db.entity.SimpleComicBookWithTags
@@ -121,7 +122,7 @@ data class ComicBook @Ignore constructor(
         pages: Array<ComicBookPage>
     ) : this(
         0,
-        Uri.parse(filePath),
+        filePath.toUri(),
         fileSize,
         fileHash,
         displayName,

@@ -1,6 +1,6 @@
 /*
  * This file is part of Seeneva Android Reader
- * Copyright (C) 2021 Sergei Solodovnikov
+ * Copyright (C) 2021-2025 Sergei Solodovnikov
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,7 +13,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>
  */
 
 package app.seeneva.reader.logic.text.tts
@@ -21,7 +21,6 @@ package app.seeneva.reader.logic.text.tts
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.speech.tts.TextToSpeech
 import app.seeneva.reader.common.coroutines.Dispatchers
 import app.seeneva.reader.logic.text.Language
@@ -231,11 +230,7 @@ internal class AndroidTTS(context: Context, dispatchers: Dispatchers) : Coroutin
         }
 
     private suspend fun speakInner(tts: TextToSpeech, text: CharSequence): TTS.Result {
-        val maxChars = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            TextToSpeech.getMaxSpeechInputLength()
-        } else {
-            Int.MAX_VALUE
-        }
+        val maxChars = TextToSpeech.getMaxSpeechInputLength()
 
         return if (text.length <= maxChars) {
             tts.speakCompat(text, TextToSpeech.QUEUE_FLUSH).asResult()
@@ -328,12 +323,7 @@ internal class AndroidTTS(context: Context, dispatchers: Dispatchers) : Coroutin
          * @param queueMode
          */
         private fun TextToSpeech.speakCompat(text: CharSequence, queueMode: Int) =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                speak(text, queueMode, null, SPEAK_ID)
-            } else {
-                @Suppress("DEPRECATION")
-                speak(text.toString(), queueMode, null)
-            }
+            speak(text, queueMode, null, SPEAK_ID)
     }
 }
 
