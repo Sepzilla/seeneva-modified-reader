@@ -28,6 +28,7 @@ import kotlinx.serialization.Serializable
  * @param keepScreenOn should keep screen ON
  * @param brightness viewer screen brightness
  * @param tts is text-to-speech enabled
+ * @param balloonZoom multiplier applied to the default balloon zoom (1.0 = default)
  */
 @Serializable
 data class ViewerConfig(
@@ -36,13 +37,16 @@ data class ViewerConfig(
     @SerialName("brightness")
     val brightness: Float = SYSTEM_BRIGHTNESS,
     @SerialName("tts")
-    val tts: Boolean = true
+    val tts: Boolean = true,
+    @SerialName("balloon_zoom")
+    val balloonZoom: Float = DEFAULT_BALLOON_ZOOM
 ) {
     val systemBrightness
         get() = brightness == SYSTEM_BRIGHTNESS
 
     companion object {
         const val SYSTEM_BRIGHTNESS = -1.0f
+        const val DEFAULT_BALLOON_ZOOM = 1.0f
     }
 }
 

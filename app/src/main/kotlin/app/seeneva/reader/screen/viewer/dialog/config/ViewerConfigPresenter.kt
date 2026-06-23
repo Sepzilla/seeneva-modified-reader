@@ -63,6 +63,12 @@ interface ViewerConfigPresenter : Presenter {
      * @param brightness new brightness value
      */
     fun onBrightnessChange(brightness: Float)
+
+    /**
+     * User changed balloon zoom multiplier
+     * @param zoom new multiplier (1.0 = default)
+     */
+    fun onBalloonZoomChange(zoom: Float)
 }
 
 class ViewerConfigPresenterImpl(
@@ -173,6 +179,14 @@ class ViewerConfigPresenterImpl(
         currentConfig()?.also {
             if (it.brightness != brightness) {
                 viewModel.saveConfig(it.copy(brightness = brightness))
+            }
+        }
+    }
+
+    override fun onBalloonZoomChange(zoom: Float) {
+        currentConfig()?.also {
+            if (it.balloonZoom != zoom) {
+                viewModel.saveConfig(it.copy(balloonZoom = zoom))
             }
         }
     }

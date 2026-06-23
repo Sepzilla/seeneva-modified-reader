@@ -198,6 +198,8 @@ class BookViewerPageFragment :
 
     private var snackbar: Snackbar? = null
 
+    private var currentBalloonZoom = 1.0f
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -245,6 +247,10 @@ class BookViewerPageFragment :
                     }
                 }
             }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            presenter.balloonZoomFlow.collect { currentBalloonZoom = it }
+        }
 
         presenter.readDirectionState
             .filterNotNull()
@@ -380,7 +386,11 @@ class BookViewerPageFragment :
 
                             //show restored object
                             if (obj != null) {
-                                objectImageHelper.showPageObject(obj, animate = false)
+                                objectImageHelper.showPageObject(
+                                    obj,
+                                    resources.getDimension(R.dimen.viewer_balloon_scale_xy) * currentBalloonZoom,
+                                    animate = false
+                                )
                             }
                         }
                     }
@@ -436,7 +446,10 @@ class BookViewerPageFragment :
         val objData = presenter.nextPageObject(objectDirection)
 
         if (objData != null) {
-            objectImageHelper.showPageObject(objData)
+            objectImageHelper.showPageObject(
+                objData,
+                resources.getDimension(R.dimen.viewer_balloon_scale_xy) * currentBalloonZoom
+            )
 
             requireView().performHapticFeedback(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {

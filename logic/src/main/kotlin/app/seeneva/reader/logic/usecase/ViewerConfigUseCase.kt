@@ -76,6 +76,9 @@ internal class ViewerConfigUseCaseImpl(private val settings: ComicsSettings) : V
                 if (brightness !in ViewerConfig.SYSTEM_BRIGHTNESS..1.0f) {
                     throw IllegalArgumentException()
                 }
+                if (balloonZoom <= 0f) {
+                    throw IllegalArgumentException()
+                }
             } catch (t: Throwable) {
                 Logger.error(t, "Invalid comic book viewer config $this")
                 throw t

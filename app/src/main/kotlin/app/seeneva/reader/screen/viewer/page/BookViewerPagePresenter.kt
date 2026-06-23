@@ -29,6 +29,7 @@ import app.seeneva.reader.common.coroutines.Dispatchers
 import app.seeneva.reader.extension.observe
 import app.seeneva.reader.logic.ComicsSettings
 import app.seeneva.reader.logic.entity.ComicPageData
+import app.seeneva.reader.logic.entity.configuration.ViewerConfig
 import app.seeneva.reader.logic.entity.ComicPageObject
 import app.seeneva.reader.logic.entity.ComicPageObjectContainer
 import app.seeneva.reader.logic.entity.Direction
@@ -61,6 +62,11 @@ interface BookViewerPagePresenter : Presenter {
      * Flow of text recognition events
      */
     val txtRecognition: SharedFlow<TxtRecognitionState>
+
+    /**
+     * Emits the current balloon zoom multiplier (1.0 = default), updating whenever the user changes it in settings
+     */
+    val balloonZoomFlow: Flow<Float>
 
     /**
      * Request next page object by provided direction
@@ -141,6 +147,12 @@ class BookViewerPagePresenterImpl(
         MutableSharedFlow<TxtRecognitionState>(0, 1, BufferOverflow.DROP_OLDEST)
 
     override val txtRecognition = _txtRecognition.asSharedFlow()
+
+    override val balloonZoomFlow: Flow<Float> =
+        settings.viewerConfigFlow()
+            .onStart { emit(settings.getViewerConfig()) }
+            .map { it?.balloonZoom ?: ViewerConfig.DEFAULT_BALLOON_ZOOM }
+            .distinctUntilChanged()
 
     /**
      * Current viewed page object position

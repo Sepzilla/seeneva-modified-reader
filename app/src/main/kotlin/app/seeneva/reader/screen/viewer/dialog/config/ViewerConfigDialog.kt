@@ -117,6 +117,14 @@ class ViewerConfigDialog : BaseDraggableDialog(), ViewerConfigView, KoinScopeCom
             viewBinding.brightnessSlider.userProgress().collect { presenter.onBrightnessChange(it) }
         }
 
+        viewBinding.balloonZoomSlider.setLabelFormatter { value ->
+            String.format("%.1f×", value)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewBinding.balloonZoomSlider.userProgress().collect { presenter.onBalloonZoomChange(it) }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             presenter.changeTtsEvents.collect {
                 when (it) {
@@ -158,6 +166,13 @@ class ViewerConfigDialog : BaseDraggableDialog(), ViewerConfigView, KoinScopeCom
             viewBinding.systemBrightnessSwitch.isChecked = false
 
             showBrightness(config.brightness)
+        }
+
+        viewBinding.balloonZoomSlider.also { slider ->
+            // Round to nearest step to avoid IllegalStateException from Material Slider
+            val step = slider.stepSize.takeIf { it > 0 } ?: 1f
+            val clamped = config.balloonZoom.coerceIn(slider.valueFrom, slider.valueTo)
+            slider.value = (Math.round(clamped / step) * step).coerceIn(slider.valueFrom, slider.valueTo)
         }
 
         callback?.onConfigChanged(config)
