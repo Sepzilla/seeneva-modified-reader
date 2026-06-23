@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bubble Zoom — Comic Processor</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; max-width: 860px; margin: 32px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 21px; margin-bottom: 4px; }
+  .sub { color: #666; margin-top: 0; }
+  .step { margin: 18px 0; padding: 16px; border: 1px solid #ddd; border-radius: 12px; }
+  .step h2 { font-size: 15px; margin: 0 0 10px; }
+  label { font-size: 14px; }
+  code { background: #eee; padding: 1px 5px; border-radius: 4px; }
+  #drop { padding: 26px; border: 2px dashed #bbb; border-radius: 12px; text-align: center; color: #999; background: #fafafa; transition: all .15s; }
+  #drop.ready { border-color: #2d7; color: #2a7; background: #f3fdf6; }
+  #drop.hover { border-color: #1a73e8; background: #eef5ff; color: #1a73e8; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .barwrap { height: 10px; background: #eee; border-radius: 6px; overflow: hidden; margin: 10px 0 4px; }
+  #bar { height: 100%; width: 0; background: #1a73e8; transition: width .1s; }
+  #pageinfo { font-size: 13px; color: #444; }
+  #preview { display: block; max-width: 100%; border-radius: 8px; border: 1px solid #eee; margin-top: 10px; }
+  #status { white-space: pre-wrap; background: #0f1117; color: #d6e2f0; padding: 14px; border-radius: 10px;
+            font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; height: 190px; overflow-y: auto; margin-top: 10px; }
+  input[type=number] { width: 64px; }
+  .flex { display: flex; gap: 20px; flex-wrap: wrap; }
+  .col { flex: 1 1 360px; }
+  .fmt { font-size: 12.5px; color: #777; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Bubble Zoom — Comic Processor</h1>
+<p class="sub">Detects speech balloons and panels on every page and repackages the comic as a <code>.cbz</code> with an embedded <code>.seeneva.json</code> sidecar. Open that <code>.cbz</code> in Seeneva and it uses these detections instead of running on-device. Everything runs locally; nothing is uploaded.</p>
+
+<div class="step">
+  <h2>1. Load the models (once per session)</h2>
+  <div class="row">
+    <label>Speech balloon model (<code>Bubbles/best.onnx</code>): <input id="bubbleModelFile" type="file" accept=".onnx" /></label>
+    <label>Panel model (<code>Panel/best.onnx</code>): <input id="panelModelFile" type="file" accept=".onnx" /></label>
+  </div>
+  <div class="fmt">Load at least one model. Load both to get balloons <em>and</em> panels in a single sidecar.</div>
+</div>
+
+<div class="step">
+  <h2>2. Settings</h2>
+  <div class="row">
+    <label>Reading direction:
+      <select id="dir"><option value="ltr">Left-to-right (western)</option><option value="rtl">Right-to-left (manga)</option></select>
+    </label>
+    <label>Confidence: <input id="conf" type="number" min="0.05" max="0.95" step="0.05" value="0.25" /></label>
+  </div>
+</div>
+
+<div class="step">
+  <h2>3. Drop a comic or images to process</h2>
+  <div id="drop">Drag &amp; drop a <strong>.cbz</strong>, <strong>.cbr</strong>, or <strong>image file(s)</strong> here<br/>(or <label style="color:#1a73e8;cursor:pointer;text-decoration:underline">choose files<input id="cbzFile" type="file" accept=".cbz,.cbr,.zip,.rar,image/*" multiple style="display:none" /></label>)</div>
+  <div class="fmt">Supported: CBZ/ZIP, CBR/RAR, and plain images (JPG, PNG, WEBP, GIF, BMP, AVIF). Drop one comic file, or select several images at once. (CBR support is fetched from a CDN the first time you open one.)</div>
+  <div class="barwrap"><div id="bar"></div></div>
+  <div id="pageinfo"></div>
+  <div class="flex">
+    <div class="col"><canvas id="preview"></canvas></div>
+    <div class="col"><div id="status">Waiting…</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+<script>
+// ================= CONFIG (the few knobs you may change) =================
+const CONFIG = {
+  inputSize: 640,
+  confThreshold: 0.25,
+  iouThreshold: 0.45,
+  polygonEpsilon: 1.5,
+  readingDirection: "ltr",
+  classMap: { 0: { id: 0, name: "speech_balloon" }, 1: { id: 1, name: "panel" } },
+  ortCdn: "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/",
+  unrarVersion: "2.0.2",
+  unrarEsm: "https://cdn.jsdelivr.net/npm/node-unrar-js@2.0.2/+esm",
+};
+const SCHEMA_VERSION = "1.0";
+const TOOL_VERSION = "0.4.0";
+
+// Each model is single-class; we force the sidecar class_id by which model produced it.
+const BUBBLE_CLASS = CONFIG.classMap[0]; // { id: 0, name: "speech_balloon" }
+const PANEL_CLASS  = CONFIG.classMap[1]; // { id: 1, name: "panel" }
+
+const IMAGE_RE   = /\.(jpe?g|png|webp|gif|bmp|avif)$/i;
+const ZIP_RE     = /\.(cbz|zip)$/i;
+const ARCHIVE_RE = /\.(cbr|rar)$/i;
+
+// ================= small helpers =================
+const $ = (id) => document.getElementById(id);
+function status(msg) { const el = $("status"); el.textContent += msg + "\n"; el.scrollTop = el.scrollHeight; console.log(msg); }
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+const clamp01 = (v) => clamp(v, 0, 1);
+const round4 = (v) => Math.round(v * 10000) / 10000;
+const yield_ = () => new Promise((r) => requestAnimationFrame(() => r()));
+function naturalSort(a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }); }
+function baseNameOf(n) { return n.replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, ""); }
+function isJunk(n) { return n.includes("__MACOSX") || n.split(/[\\/]/).pop().startsWith("."); }
+
+// ================= geometry / postprocessing (unit-tested) =================
+function iou(a, b) {
+  const x1 = Math.max(a[0], b[0]), y1 = Math.max(a[1], b[1]);
+  const x2 = Math.min(a[2], b[2]), y2 = Math.min(a[3], b[3]);
+  const iw = Math.max(0, x2 - x1), ih = Math.max(0, y2 - y1), inter = iw * ih;
+  const areaA = (a[2]-a[0])*(a[3]-a[1]), areaB = (b[2]-b[0])*(b[3]-b[1]);
+  return inter / (areaA + areaB - inter + 1e-9);
+}
+function nms(dets, iouThr) {
+  const sorted = dets.slice().sort((p, q) => q.score - p.score);
+  const removed = new Array(sorted.length).fill(false), keep = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (removed[i]) continue; keep.push(sorted[i]);
+    for (let j = i + 1; j < sorted.length; j++)
+      if (!removed[j] && iou(sorted[i].box, sorted[j].box) > iouThr) removed[j] = true;
+  }
+  return keep;
+}
+function letterbox(w, h, target) {
+  const scale = Math.min(target / w, target / h);
+  const newW = Math.round(w * scale), newH = Math.round(h * scale);
+  return { scale, padX: (target - newW) / 2, padY: (target - newH) / 2, newW, newH };
+}
+function fromLetterbox(px, py, lb) { return [(px - lb.padX) / lb.scale, (py - lb.padY) / lb.scale]; }
+function parseDetections(data, channels, anchors, numClasses, confThr) {
+  const out = [], maskStart = 4 + numClasses, numMask = channels - maskStart;
+  for (let a = 0; a < anchors; a++) {
+    let best = 0, bestC = 0;
+    for (let c = 0; c < numClasses; c++) { const s = data[(4 + c) * anchors + a]; if (s > best) { best = s; bestC = c; } }
+    if (best < confThr) continue;
+    const cx = data[a], cy = data[anchors + a], w = data[2*anchors + a], h = data[3*anchors + a];
+    const coeffs = new Float32Array(numMask);
+    for (let m = 0; m < numMask; m++) coeffs[m] = data[(maskStart + m) * anchors + a];
+    out.push({ box: [cx - w/2, cy - h/2, cx + w/2, cy + h/2], score: best, classId: bestC, coeffs });
+  }
+  return out;
+}
+function traceContour(mask, w, h) {
+  const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? 0 : mask[y*w + x];
+  let sx = -1, sy = -1;
+  outer: for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y*w+x]) { sx=x; sy=y; break outer; }
+  if (sx < 0) return [];
+  const nb = [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+  const contour = []; let cx = sx, cy = sy, b = 4, steps = 0; const maxSteps = 8 * w * h + 100;
+  do {
+    contour.push([cx, cy]); let found = false;
+    for (let k = 0; k < 8; k++) {
+      const dir = (b + 1 + k) % 8, nx = cx + nb[dir][0], ny = cy + nb[dir][1];
+      if (at(nx, ny)) { b = (dir + 4) % 8; cx = nx; cy = ny; found = true; break; }
+    }
+    if (!found) break; steps++;
+  } while ((cx !== sx || cy !== sy) && steps < maxSteps);
+  return contour;
+}
+function perpDist(p, a, c) {
+  const dx = c[0]-a[0], dy = c[1]-a[1], len = Math.hypot(dx, dy);
+  if (len < 1e-9) return Math.hypot(p[0]-a[0], p[1]-a[1]);
+  return Math.abs((p[0]-a[0])*dy - (p[1]-a[1])*dx) / len;
+}
+function dpOpen(pts, eps) {
+  if (pts.length < 3) return pts.slice();
+  let maxD = -1, idx = -1;
+  for (let i = 1; i < pts.length-1; i++) { const d = perpDist(pts[i], pts[0], pts[pts.length-1]); if (d > maxD) { maxD = d; idx = i; } }
+  if (maxD > eps) return dpOpen(pts.slice(0, idx+1), eps).slice(0,-1).concat(dpOpen(pts.slice(idx), eps));
+  return [pts[0], pts[pts.length-1]];
+}
+function simplifyClosed(pts, eps) {
+  if (pts.length < 4) return pts.slice();
+  let maxD = -1, idx = 0;
+  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0]-pts[0][0], pts[i][1]-pts[0][1]); if (d > maxD) { maxD = d; idx = i; } }
+  const a = dpOpen(pts.slice(0, idx+1), eps), b = dpOpen(pts.slice(idx), eps);
+  return a.slice(0,-1).concat(b.slice(0,-1));
+}
+function readingOrder(boxes, direction) {
+  const items = boxes.map(o => ({ id: o.id, box: o.box, cy: (o.box[1]+o.box[3])/2, cx: (o.box[0]+o.box[2])/2, h: o.box[3]-o.box[1] }));
+  const rows = [];
+  for (const it of items.slice().sort((a,b)=>a.cy-b.cy)) {
+    let placed = false;
+    for (const row of rows) if (Math.abs(it.cy - row.cy) < Math.max(row.h, it.h) * 0.6) { row.items.push(it); row.cy=(row.cy+it.cy)/2; placed=true; break; }
+    if (!placed) rows.push({ cy: it.cy, h: it.h, items: [it] });
+  }
+  rows.sort((a,b)=>a.cy-b.cy);
+  const ordered = [];
+  for (const row of rows) { row.items.sort((a,b)=> direction==="rtl" ? b.cx-a.cx : a.cx-b.cx); for (const it of row.items) ordered.push(it); }
+  return ordered.map((it,i)=>({ id: it.id, order: i }));
+}
+
+// ================= model =================
+let bubbleSession = null;
+let panelSession = null;
+let inputBuf = null;
+const lbCanvas = (typeof document !== "undefined") ? document.createElement("canvas") : null;
+
+// Load a model file into the given slot ("bubble" or "panel").
+async function loadModel(file, slot) {
+  status("Reading " + slot + " model into memory...");
+  ort.env.wasm.numThreads = 1;
+  ort.env.wasm.wasmPaths = CONFIG.ortCdn;
+  const buf = new Uint8Array(await file.arrayBuffer());
+  status("Loading " + slot + " model (10-60s first time)...");
+  const sess = await ort.InferenceSession.create(buf, { executionProviders: ["wasm"] });
+  if (slot === "panel") panelSession = sess; else bubbleSession = sess;
+  if (!inputBuf) inputBuf = new Float32Array(3 * CONFIG.inputSize * CONFIG.inputSize);
+  const loaded = [bubbleSession && "balloons", panelSession && "panels"].filter(Boolean).join(" + ");
+  status("Ready: " + loaded + ". Now drop a CBZ, CBR, or image file(s) below.");
+  $("drop").classList.add("ready");
+}
+
+// Run one model over a bitmap and return objects tagged with the given class.
+async function detect(session, bitmap, classInfo) {
+  const lb = preprocess(bitmap);
+  const tensor = new ort.Tensor("float32", inputBuf, [1, 3, CONFIG.inputSize, CONFIG.inputSize]);
+  const outputs = await session.run({ [session.inputNames[0]]: tensor });
+  return processOutputs(outputs["output0"], outputs["output1"], lb, bitmap.width, bitmap.height, CONFIG.confThreshold, CONFIG.iouThreshold, classInfo);
+}
+
+// Assign id, panel_id and reading order_index across a merged set of objects.
+function assignOrder(objects) {
+  const boxes = objects.map((o, i) => ({ id: i, box: [o.bbox.x, o.bbox.y, o.bbox.x + o.bbox.width, o.bbox.y + o.bbox.height] }));
+  const orderMap = {};
+  readingOrder(boxes, CONFIG.readingDirection).forEach(o => orderMap[o.id] = o.order);
+  objects.forEach((o, i) => { o.id = i; o.panel_id = null; o.order_index = orderMap[i]; });
+  return objects;
+}
+
+function preprocess(bitmap) {
+  const S = CONFIG.inputSize;
+  const lb = letterbox(bitmap.width, bitmap.height, S);
+  lbCanvas.width = S; lbCanvas.height = S;
+  const ctx = lbCanvas.getContext("2d", { willReadFrequently: true });
+  ctx.fillStyle = "rgb(114,114,114)"; ctx.fillRect(0, 0, S, S);
+  ctx.drawImage(bitmap, lb.padX, lb.padY, lb.newW, lb.newH);
+  const img = ctx.getImageData(0, 0, S, S).data, area = S * S;
+  for (let i = 0; i < area; i++) {
+    inputBuf[i] = img[i*4] / 255;
+    inputBuf[area + i] = img[i*4 + 1] / 255;
+    inputBuf[2*area + i] = img[i*4 + 2] / 255;
+  }
+  return lb;
+}
+
+function processOutputs(out0, out1, lb, origW, origH, conf, iouT, classInfo) {
+  const ch = out0.dims[1], anchors = out0.dims[2];
+  const P = out1.dims[1], mh = out1.dims[2], mw = out1.dims[3];
+  const numClasses = ch - 4 - P;
+  const data = out0.data, protos = out1.data;
+  let dets = nms(parseDetections(data, ch, anchors, numClasses, conf), iouT);
+  const maskScale = CONFIG.inputSize / mw;
+  const grid = new Uint8Array(mw * mh);
+  const objects = [];
+  for (const d of dets) {
+    grid.fill(0);
+    const bx1 = clamp(Math.floor(d.box[0]/maskScale), 0, mw-1), by1 = clamp(Math.floor(d.box[1]/maskScale), 0, mh-1);
+    const bx2 = clamp(Math.ceil(d.box[2]/maskScale), 0, mw-1), by2 = clamp(Math.ceil(d.box[3]/maskScale), 0, mh-1);
+    for (let y = by1; y <= by2; y++) for (let x = bx1; x <= bx2; x++) {
+      let s = 0; const base = y*mw + x;
+      for (let p = 0; p < P; p++) s += d.coeffs[p] * protos[p*mh*mw + base];
+      if (1/(1+Math.exp(-s)) >= 0.5) grid[base] = 1;
+    }
+    const simp = simplifyClosed(traceContour(grid, mw, mh), CONFIG.polygonEpsilon / maskScale);
+    let [ox1, oy1] = fromLetterbox(d.box[0], d.box[1], lb);
+    let [ox2, oy2] = fromLetterbox(d.box[2], d.box[3], lb);
+    ox1 = clamp(ox1,0,origW); ox2 = clamp(ox2,0,origW); oy1 = clamp(oy1,0,origH); oy2 = clamp(oy2,0,origH);
+    const nx = ox1/origW, ny = oy1/origH, nw = (ox2-ox1)/origW, nh = (oy2-oy1)/origH;
+    let polygon;
+    if (simp.length >= 3) {
+      polygon = simp.map(([mx,my]) => { const [px,py] = fromLetterbox(mx*maskScale, my*maskScale, lb); return [round4(clamp01(px/origW)), round4(clamp01(py/origH))]; });
+    } else {
+      polygon = [[round4(nx),round4(ny)],[round4(nx+nw),round4(ny)],[round4(nx+nw),round4(ny+nh)],[round4(nx),round4(ny+nh)]];
+    }
+    // Each model is single-class, so the class is forced by which model ran.
+    const canon = classInfo || CONFIG.classMap[d.classId] || { id: d.classId, name: "class_"+d.classId };
+    objects.push({ class_id: canon.id, class_name: canon.name, confidence: Math.round(d.score*1000)/1000,
+      bbox: { x: round4(nx), y: round4(ny), width: round4(nw), height: round4(nh) }, polygon });
+  }
+  // id / panel_id / order_index are assigned by the caller across the merged set.
+  return objects;
+}
+
+// ================= page sources (zip / archive / images) =================
+let unrarMod = null;
+async function getUnrar() {
+  if (!unrarMod) {
+    status("Loading RAR/CBR support from CDN...");
+    unrarMod = await import(CONFIG.unrarEsm);
+  }
+  return unrarMod;
+}
+async function fetchUnrarWasm() {
+  const V = CONFIG.unrarVersion;
+  let discovered = null;
+  try {
+    const meta = await (await fetch("https://data.jsdelivr.com/v1/package/npm/node-unrar-js@" + V + "/flat")).json();
+    const f = meta.files.find((x) => x.name.toLowerCase().endsWith(".wasm"));
+    if (f) discovered = f.name;
+  } catch (e) { /* fall back to known paths below */ }
+  const urls = [];
+  if (discovered) urls.push("https://cdn.jsdelivr.net/npm/node-unrar-js@" + V + discovered);
+  urls.push("https://cdn.jsdelivr.net/npm/node-unrar-js@" + V + "/esm/js/unrar.wasm");
+  urls.push("https://cdn.jsdelivr.net/npm/node-unrar-js@" + V + "/dist/js/unrar.wasm");
+  for (const url of urls) {
+    try {
+      const r = await fetch(url);
+      if (r.ok) { const buf = await r.arrayBuffer(); if (buf.byteLength > 1000) { status("  unrar wasm loaded (" + ((buf.byteLength/1024)|0) + " KB)"); return buf; } }
+    } catch (e) { /* try next candidate */ }
+  }
+  throw new Error("Could not download the unrar WASM from the CDN.");
+}
+async function pagesFromZip(file) {
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const names = Object.keys(zip.files).filter(n => !zip.files[n].dir && IMAGE_RE.test(n) && !isJunk(n)).sort(naturalSort);
+  const pages = [];
+  for (const n of names) pages.push({ name: n, blob: await zip.files[n].async("blob") });
+  return pages;
+}
+async function pagesFromArchive(file) {
+  const mod = await getUnrar();
+  const create = mod.createExtractorFromData || (mod.default && mod.default.createExtractorFromData);
+  if (!create) throw new Error("RAR support loaded but the extractor function was not found.");
+  const wasmBinary = await fetchUnrarWasm();
+  const data = await file.arrayBuffer();
+  const extractor = await create({ wasmBinary, data });
+  const headers = [...extractor.getFileList().fileHeaders];
+  const names = headers.filter((h) => !h.flags.directory && IMAGE_RE.test(h.name) && !isJunk(h.name)).map((h) => h.name);
+  const pages = [];
+  for (const f of [...extractor.extract({ files: names }).files]) {
+    if (f.extraction && f.extraction.length) pages.push({ name: f.fileHeader.name, blob: new Blob([f.extraction]) });
+  }
+  pages.sort((a, b) => naturalSort(a.name, b.name));
+  return pages;
+}
+function pagesFromImages(files) {
+  const arr = files.filter(f => IMAGE_RE.test(f.name)).map(f => ({ name: f.name, blob: f }));
+  arr.sort((a,b)=>naturalSort(a.name,b.name));
+  return arr;
+}
+
+// ================= main driver =================
+async function processFiles(fileList) {
+  if (!bubbleSession && !panelSession) { status("Load at least one model first."); return; }
+  const files = Array.from(fileList);
+  if (!files.length) return;
+  CONFIG.confThreshold = parseFloat($("conf").value) || 0.25;
+  CONFIG.readingDirection = $("dir").value;
+
+  let pages, sourceName, baseName;
+  try {
+    if (files.length === 1) {
+      const f = files[0]; sourceName = f.name; baseName = baseNameOf(f.name);
+      if (IMAGE_RE.test(f.name)) { status("\nProcessing image " + f.name + " ..."); pages = pagesFromImages([f]); }
+      else if (ZIP_RE.test(f.name)) { status("\nOpening (zip) " + f.name + " ..."); pages = await pagesFromZip(f); }
+      else { status("\nOpening (archive) " + f.name + " ..."); pages = await pagesFromArchive(f); }
+    } else if (files.every(f => IMAGE_RE.test(f.name))) {
+      status("\nProcessing " + files.length + " image files...");
+      pages = pagesFromImages(files);
+      sourceName = baseNameOf(files[0].name) + " (+" + (files.length - 1) + " more)";
+      baseName = baseNameOf(files[0].name) || "images";
+    } else {
+      status("Drop ONE comic file (.cbz or .cbr), or MULTIPLE image files."); return;
+    }
+  } catch (err) {
+    status("Could not open: " + (err && err.message ? err.message : err));
+    if (sourceName && ARCHIVE_RE.test(sourceName))
+      status(">> CBR needs the RAR unpacker fetched from the CDN. If this failed you may be offline;\n>> otherwise paste this message to me and we will sort it out.");
+    return;
+  }
+
+  status("Found " + pages.length + " page image(s).");
+  if (!pages.length) { status("No images found inside the file."); return; }
+
+  const outPages = []; let totalBalloons = 0, totalPanels = 0;
+  for (let i = 0; i < pages.length; i++) {
+    const { name, blob } = pages[i];
+    $("bar").style.width = Math.round((i / pages.length) * 100) + "%";
+    $("pageinfo").textContent = "Page " + (i+1) + " / " + pages.length + "  (" + name + ")";
+    try {
+      const bitmap = await createImageBitmap(blob);
+      // Run whichever models are loaded; panels first, then balloons.
+      const panels   = panelSession  ? await detect(panelSession,  bitmap, PANEL_CLASS)  : [];
+      const balloons = bubbleSession ? await detect(bubbleSession, bitmap, BUBBLE_CLASS) : [];
+      const objects = assignOrder([...panels, ...balloons]);
+      totalBalloons += balloons.length;
+      totalPanels += panels.length;
+      drawPreview(bitmap, objects);
+      outPages.push({ index: i, image_name: name, width: bitmap.width, height: bitmap.height, objects });
+      bitmap.close && bitmap.close();
+    } catch (err) {
+      status("  ! page " + (i+1) + " failed: " + err);
+      outPages.push({ index: i, image_name: name, width: 0, height: 0, objects: [] });
+    }
+    await yield_();
+  }
+  $("bar").style.width = "100%";
+
+  const usedClasses = [bubbleSession && BUBBLE_CLASS, panelSession && PANEL_CLASS].filter(Boolean);
+  const classMap = {}; usedClasses.forEach(c => { classMap[String(c.id)] = c.name; });
+  const json = {
+    schema_version: SCHEMA_VERSION, format: "seeneva-bubble-zoom",
+    generator: { tool: "bubble-zoom-processor", tool_version: TOOL_VERSION,
+      models: { speech_balloon: !!bubbleSession, panel: !!panelSession },
+      model_input_size: CONFIG.inputSize, confidence_threshold: CONFIG.confThreshold, iou_threshold: CONFIG.iouThreshold, created_at: new Date().toISOString() },
+    source: { file_name: sourceName, page_count: pages.length },
+    reading_direction: CONFIG.readingDirection, coordinate_space: "normalized", class_map: classMap, pages: outPages,
+  };
+  status("Done. " + pages.length + " pages, " + totalBalloons + " balloons, " + totalPanels + " panels detected.");
+  status("Packaging .cbz with embedded sidecar...");
+  await downloadComic(json, pages, baseName);
+}
+
+function drawPreview(bitmap, objects) {
+  const cv = $("preview"), maxW = 380, scale = Math.min(1, maxW / bitmap.width);
+  cv.width = Math.round(bitmap.width * scale); cv.height = Math.round(bitmap.height * scale);
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, cv.width, cv.height);
+  ctx.lineWidth = 2;
+  for (const o of objects) {
+    const isPanel = o.class_id === 1;
+    ctx.strokeStyle = isPanel ? "#1a73e8" : "#16c60c";
+    ctx.fillStyle = isPanel ? "rgba(26,115,232,0.08)" : "rgba(22,198,12,0.12)";
+    ctx.beginPath();
+    o.polygon.forEach(([x,y],i)=>{ const px=x*cv.width, py=y*cv.height; if(i===0)ctx.moveTo(px,py); else ctx.lineTo(px,py); });
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+}
+
+// Repackage the comic as a .cbz with the sidecar embedded as the first entry.
+// Original page images are stored uncompressed (they are already compressed),
+// so quality is preserved and packaging is fast. The result is a single file
+// to open in Seeneva.
+async function downloadComic(json, pages, baseName) {
+  const zip = new JSZip();
+  // Sidecar first so Seeneva's pre-scan finds it cheaply.
+  zip.file(baseName + ".seeneva.json", JSON.stringify(json, null, 2), { compression: "DEFLATE" });
+  for (const { name, blob } of pages) {
+    zip.file(name, blob, { compression: "STORE" });
+  }
+  const out = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.comicbook+zip" });
+  const filename = baseName + ".seeneva.cbz";
+  const url = URL.createObjectURL(out);
+  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  status("Saved: " + filename + "  <- open THIS file in Seeneva");
+}
+
+// ================= wire up UI =================
+if (typeof document !== "undefined") {
+  $("bubbleModelFile").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) loadModel(f, "bubble").catch(err => status("Model error: " + (err.stack||err))); });
+  $("panelModelFile").addEventListener("change", (e) => { const f = e.target.files[0]; if (f) loadModel(f, "panel").catch(err => status("Model error: " + (err.stack||err))); });
+  const drop = $("drop");
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("hover"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("hover"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("hover"); if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files).catch(err => status("Error: " + (err.stack||err))); });
+  $("cbzFile").addEventListener("change", (e) => { if (e.target.files.length) processFiles(e.target.files).catch(err => status("Error: " + (err.stack||err))); });
+}
+
+</script>
+</body>
+</html>

@@ -1,5 +1,15 @@
 vendor/bundle
 
+# macOS
+.DS_Store
+
+# Large local assets under upgraded-models/ (trained models + sample comics stay local only)
+upgraded-models/**/*.onnx
+upgraded-models/**/*.cbr
+upgraded-models/**/*.cbz
+upgraded-models/**/*.cbt
+upgraded-models/**/*.zip
+
 # https://docs.fastlane.tools/best-practices/keys/
 .env.*
 

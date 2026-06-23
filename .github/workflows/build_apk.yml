@@ -1,0 +1,45 @@
+name: Build APK
+
+# Manually triggered build that produces an unsigned, installable APK.
+# It reuses the existing fork build lane, so it needs no signing secrets.
+# Run it from the Actions tab ("Build APK" -> "Run workflow"), then download
+# the "apk" artifact from the finished run.
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Gradle build type"
+        required: true
+        default: "Release"
+        type: choice
+        options:
+          - Release
+          - Debug
+
+env:
+  BUNDLE_WITHOUT: development
+  FASTLANE_SKIP_UPDATE_CHECK: true
+
+jobs:
+  build:
+    name: Build unsigned APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare env
+        uses: ./.github/actions/prepare_env
+
+      - name: Build unsigned APK
+        run: |
+          bundle exec fastlane pr_build_fork_apk build_type:"${{ inputs.build_type }}"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: ./app/build/outputs/apk
+          if-no-files-found: error
