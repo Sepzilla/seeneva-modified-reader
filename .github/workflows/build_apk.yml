@@ -23,7 +23,8 @@ env:
 jobs:
   build:
     name: Build unsigned APK
-    runs-on: ubuntu-latest
+    # Pinned to 22.04 so an older libclang (clang-12) is available for bindgen.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +33,16 @@ jobs:
 
       - name: Prepare env
         uses: ./.github/actions/prepare_env
+
+      # The native deps (libarchive-sys, tesseract-sys, leptonica-sys) use
+      # bindgen 0.55/0.58, which need a 2020-era libclang to emit their FFI
+      # constants correctly. Point bindgen at clang-12; the NDK's own clang
+      # still performs the actual Android cross-compilation.
+      - name: Install libclang for bindgen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-12 libclang-12-dev llvm-12-dev
+          echo "LIBCLANG_PATH=/usr/lib/llvm-12/lib" >> "$GITHUB_ENV"
 
       - name: Build unsigned APK
         run: |
