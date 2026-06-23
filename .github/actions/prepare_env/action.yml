@@ -8,17 +8,14 @@ runs:
       shell: bash
       run: sudo apt install autopoint
 
-    - name: Setup asdf
-      uses: asdf-vm/actions/setup@v3.0.2
-
-    - name: Install asdf plugins
-      uses: asdf-vm/actions/plugins-add@v3.0.2
-
+    # asdf-vm/actions@v3 is broken against current asdf (the Go rewrite on
+    # `master`), so set up Java directly. Version mirrors .tool-versions
+    # (temurin-17). Ruby is still handled by ruby/setup-ruby below.
     - name: Setup required Java
-      shell: bash
-      run: |
-        asdf install java &&
-        echo "JAVA_HOME=$(asdf where java)" >> "$GITHUB_ENV"
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "17"
 
     - name: Setup required Ruby
       uses: ruby/setup-ruby@v1
