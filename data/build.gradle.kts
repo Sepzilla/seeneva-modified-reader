@@ -25,7 +25,9 @@ android {
     externalNativeBuild {
         cmake {
             path = rootDir.resolve("native/CMakeLists.txt")
-            version = "3.10.2"
+            // 3.22.1 is the CMake bundled with current Android SDK runners.
+            // native/CMakeLists.txt only requires >= 3.10.2, so this is safe.
+            version = "3.22.1"
         }
     }
 
