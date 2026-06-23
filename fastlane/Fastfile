@@ -91,6 +91,23 @@ platform :android do
     )
   end
 
+  desc 'Build a single installable, debug-signed APK (no signing secrets needed)'
+  lane :build_installable_apk do
+    clean
+
+    # Debug build type => signed with the standard Android debug keystore, so it
+    # installs on a device. No `seeneva.unsigned`, single universal APK.
+    gradle(
+      task: ':app:assemble',
+      build_type: 'Debug',
+      flavor: 'Github',
+      properties: {
+        'seeneva.disableSplitApk': '',
+        'seeneva.noDebSymbols': ''
+      }
+    )
+  end
+
   desc 'Build GitHub release APKs splitted by ABI'
   lane :gh_release_apk do |options|
     base_build(options) do

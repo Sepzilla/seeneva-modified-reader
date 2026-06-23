@@ -1,20 +1,11 @@
 name: Build APK
 
-# Manually triggered build that produces an unsigned, installable APK.
-# It reuses the existing fork build lane, so it needs no signing secrets.
+# Manually triggered build that produces a single installable, debug-signed APK.
+# It needs no signing secrets (uses the standard Android debug key).
 # Run it from the Actions tab ("Build APK" -> "Run workflow"), then download
-# the "apk" artifact from the finished run.
+# the "apk" artifact from the finished run and install the .apk on a device.
 on:
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: "Gradle build type"
-        required: true
-        default: "Release"
-        type: choice
-        options:
-          - Release
-          - Debug
 
 env:
   BUNDLE_WITHOUT: development
@@ -22,7 +13,7 @@ env:
 
 jobs:
   build:
-    name: Build unsigned APK
+    name: Build installable APK
     # Pinned to 22.04 so an older libclang (clang-12) is available for bindgen.
     runs-on: ubuntu-22.04
     steps:
@@ -44,9 +35,9 @@ jobs:
           sudo apt-get install -y clang-12 libclang-12-dev llvm-12-dev
           echo "LIBCLANG_PATH=/usr/lib/llvm-12/lib" >> "$GITHUB_ENV"
 
-      - name: Build unsigned APK
+      - name: Build installable APK
         run: |
-          bundle exec fastlane pr_build_fork_apk build_type:"${{ inputs.build_type }}"
+          bundle exec fastlane build_installable_apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
