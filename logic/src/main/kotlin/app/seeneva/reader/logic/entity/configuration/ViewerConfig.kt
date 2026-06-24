@@ -29,6 +29,7 @@ import kotlinx.serialization.Serializable
  * @param brightness viewer screen brightness
  * @param tts is text-to-speech enabled
  * @param balloonZoom multiplier applied to the default balloon zoom (1.0 = default)
+ * @param useSegmentationZoom true to zoom into segmentation polygon mask, false for bounding box
  */
 @Serializable
 data class ViewerConfig(
@@ -39,7 +40,9 @@ data class ViewerConfig(
     @SerialName("tts")
     val tts: Boolean = true,
     @SerialName("balloon_zoom")
-    val balloonZoom: Float = DEFAULT_BALLOON_ZOOM
+    val balloonZoom: Float = DEFAULT_BALLOON_ZOOM,
+    @SerialName("use_segmentation_zoom")
+    val useSegmentationZoom: Boolean = false,
 ) {
     val systemBrightness
         get() = brightness == SYSTEM_BRIGHTNESS

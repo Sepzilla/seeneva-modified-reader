@@ -125,6 +125,10 @@ class ViewerConfigDialog : BaseDraggableDialog(), ViewerConfigView, KoinScopeCom
             viewBinding.balloonZoomSlider.userProgress().collect { presenter.onBalloonZoomChange(it) }
         }
 
+        viewBinding.segmentationZoomSwitch.setOnCheckedChangeListener { _, isChecked ->
+            presenter.onSegmentationZoomChange(isChecked)
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             presenter.changeTtsEvents.collect {
                 when (it) {
@@ -174,6 +178,8 @@ class ViewerConfigDialog : BaseDraggableDialog(), ViewerConfigView, KoinScopeCom
             val clamped = config.balloonZoom.coerceIn(slider.valueFrom, slider.valueTo)
             slider.value = (Math.round(clamped / step) * step).coerceIn(slider.valueFrom, slider.valueTo)
         }
+
+        viewBinding.segmentationZoomSwitch.isChecked = config.useSegmentationZoom
 
         callback?.onConfigChanged(config)
     }

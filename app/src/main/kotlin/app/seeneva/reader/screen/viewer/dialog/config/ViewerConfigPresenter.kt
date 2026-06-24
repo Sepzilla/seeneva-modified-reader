@@ -69,6 +69,12 @@ interface ViewerConfigPresenter : Presenter {
      * @param zoom new multiplier (1.0 = default)
      */
     fun onBalloonZoomChange(zoom: Float)
+
+    /**
+     * User toggled segmentation mask zoom mode
+     * @param enabled true to use polygon mask, false for box crop
+     */
+    fun onSegmentationZoomChange(enabled: Boolean)
 }
 
 class ViewerConfigPresenterImpl(
@@ -187,6 +193,14 @@ class ViewerConfigPresenterImpl(
         currentConfig()?.also {
             if (it.balloonZoom != zoom) {
                 viewModel.saveConfig(it.copy(balloonZoom = zoom))
+            }
+        }
+    }
+
+    override fun onSegmentationZoomChange(enabled: Boolean) {
+        currentConfig()?.also {
+            if (it.useSegmentationZoom != enabled) {
+                viewModel.saveConfig(it.copy(useSegmentationZoom = enabled))
             }
         }
     }

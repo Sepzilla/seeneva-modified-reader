@@ -75,6 +75,16 @@
             app:stepSize="0.5" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/segmentationZoomSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/viewer_settings_segmentation_zoom"
+            android:textSize="16sp" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/ttsSwitch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
