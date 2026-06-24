@@ -84,6 +84,11 @@ internal class GetPageDataUseCaseImpl(
 
                 val pageObjects = pageObjectsData.objects
                     .map {
+                        val scaledPolygon = it.polygon?.let { pts ->
+                            FloatArray(pts.size) { i ->
+                                if (i % 2 == 0) pts[i] * pageWidth else pts[i] * pageHeight
+                            }
+                        }
                         ComicPageObject(
                             it.id,
                             ObjectClass.requireFromId(it.classId),
@@ -92,7 +97,8 @@ internal class GetPageDataUseCaseImpl(
                                 (it.yMin * pageHeight),
                                 (it.xMax * pageWidth),
                                 (it.yMax * pageHeight)
-                            )
+                            ),
+                            scaledPolygon
                         )
                     }
 

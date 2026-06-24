@@ -86,10 +86,12 @@ data class ComicPageObjectContainer(
  *
  * @param id object id
  * @param classId object class id
- * @param bbox object's bounding box
+ * @param bbox object's bounding box in page pixel coordinates
+ * @param polygon segmentation polygon points in page pixel coordinates, or null
  */
 data class ComicPageObject(
     val id: Long,
     val classId: ObjectClass,
     val bbox: RectF,
+    val polygon: FloatArray? = null,
 )
