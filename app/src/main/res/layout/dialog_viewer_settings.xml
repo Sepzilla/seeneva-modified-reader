@@ -72,7 +72,7 @@
             android:minHeight="48dp"
             android:valueFrom="0.5"
             android:valueTo="3.0"
-            app:stepSize="0.5" />
+            android:stepSize="0.5" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/segmentationZoomSwitch"
