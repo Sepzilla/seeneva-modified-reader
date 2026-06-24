@@ -24,6 +24,12 @@ import android.net.Uri
 /**
  * @param bookPath path to the source comic book
  * @param pagePos source comic book page position
- * @param bbox object bounding box
+ * @param bbox object bounding box in page pixel coordinates
+ * @param polygon segmentation polygon in page pixel coordinates, or null
  */
-data class SelectedPageObject(val bookPath: Uri, val pagePos: Long, val bbox: RectF)
+data class SelectedPageObject(
+    val bookPath: Uri,
+    val pagePos: Long,
+    val bbox: RectF,
+    val polygon: FloatArray? = null,
+)

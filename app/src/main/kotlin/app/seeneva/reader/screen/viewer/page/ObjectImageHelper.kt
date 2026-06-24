@@ -128,7 +128,8 @@ class ObjectImageHelper(
     fun showPageObject(
         objectData: SelectedPageObject,
         scaleXY: Float = context.resources.getDimension(R.dimen.viewer_balloon_scale_xy),
-        animate: Boolean = true
+        animate: Boolean = true,
+        useSegmentationMask: Boolean = false,
     ) {
         check(scaleImageView.isReady) { "Image is not ready" }
 
@@ -152,7 +153,7 @@ class ObjectImageHelper(
          */
         fun switchObject() {
             if (objectImageView.isVisible && animate) {
-                onHidingAnimEnd = { showPageObjectInner(objectData, resultScaleXY, animate) }
+                onHidingAnimEnd = { showPageObjectInner(objectData, resultScaleXY, animate, useSegmentationMask) }
 
                 if (animationState != ObjectAnimState.HIDING) {
                     //we need to hide current visible balloon firstly
@@ -173,7 +174,7 @@ class ObjectImageHelper(
                         }.start()
                 }
             } else {
-                showPageObjectInner(objectData, resultScaleXY, animate)
+                showPageObjectInner(objectData, resultScaleXY, animate, useSegmentationMask)
             }
         }
 
@@ -267,7 +268,8 @@ class ObjectImageHelper(
     private fun showPageObjectInner(
         objectData: SelectedPageObject,
         scaleXY: Float,
-        animate: Boolean
+        animate: Boolean,
+        useSegmentationMask: Boolean = false,
     ) {
         //Retrieve bbox position on displayed comic book page
         objectData.bbox.toPageImgProjection(viewBbox)
@@ -320,6 +322,11 @@ class ObjectImageHelper(
             objectImageView,
             error
         ) {
+            // Apply polygon mask if enabled and polygon data is present
+            if (useSegmentationMask) {
+                applyPolygonMask(objectData, srcRndBbox)
+            }
+
             //Now we are ready to show balloon view
             if (animate) {
                 baseAnimator.scaleX(calculatedScale)
@@ -344,6 +351,36 @@ class ObjectImageHelper(
                 }
             }
         }
+    }
+
+    /**
+     * Clips the bitmap currently set on [objectImageView] to the segmentation polygon.
+     * [polygon] is in page-pixel coordinates; [cropRect] is the region that was cropped.
+     * Does nothing if polygon is null or has fewer than 3 points.
+     */
+    private fun applyPolygonMask(objectData: SelectedPageObject, cropRect: Rect) {
+        val polygon = objectData.polygon ?: return
+        if (polygon.size < 6) return  // need at least 3 points (6 floats)
+
+        val src = (objectImageView.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+            ?: return
+
+        val path = android.graphics.Path()
+        var i = 0
+        while (i < polygon.size - 1) {
+            val px = polygon[i] - cropRect.left
+            val py = polygon[i + 1] - cropRect.top
+            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            i += 2
+        }
+        path.close()
+
+        val result = android.graphics.Bitmap.createBitmap(src.width, src.height, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(result)
+        canvas.clipPath(path)
+        canvas.drawBitmap(src, 0f, 0f, null)
+
+        objectImageView.setImageBitmap(result)
     }
 
     /**

@@ -199,6 +199,7 @@ class BookViewerPageFragment :
     private var snackbar: Snackbar? = null
 
     private var currentBalloonZoom = 1.0f
+    private var currentUseSegmentationZoom = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -250,6 +251,10 @@ class BookViewerPageFragment :
 
         viewLifecycleOwner.lifecycleScope.launch {
             presenter.balloonZoomFlow.collect { currentBalloonZoom = it }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            presenter.useSegmentationZoomFlow.collect { currentUseSegmentationZoom = it }
         }
 
         presenter.readDirectionState
@@ -389,7 +394,8 @@ class BookViewerPageFragment :
                                 objectImageHelper.showPageObject(
                                     obj,
                                     resources.getDimension(R.dimen.viewer_balloon_scale_xy) * currentBalloonZoom,
-                                    animate = false
+                                    animate = false,
+                                    useSegmentationMask = currentUseSegmentationZoom
                                 )
                             }
                         }
@@ -448,7 +454,8 @@ class BookViewerPageFragment :
         if (objData != null) {
             objectImageHelper.showPageObject(
                 objData,
-                resources.getDimension(R.dimen.viewer_balloon_scale_xy) * currentBalloonZoom
+                resources.getDimension(R.dimen.viewer_balloon_scale_xy) * currentBalloonZoom,
+                useSegmentationMask = currentUseSegmentationZoom
             )
 
             requireView().performHapticFeedback(

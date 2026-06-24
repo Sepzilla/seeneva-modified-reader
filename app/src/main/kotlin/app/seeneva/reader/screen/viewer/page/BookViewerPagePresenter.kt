@@ -69,6 +69,11 @@ interface BookViewerPagePresenter : Presenter {
     val balloonZoomFlow: Flow<Float>
 
     /**
+     * Emits true when segmentation polygon masking is enabled in viewer settings
+     */
+    val useSegmentationZoomFlow: Flow<Boolean>
+
+    /**
      * Request next page object by provided direction
      * @param direction object read direction
      */
@@ -152,6 +157,12 @@ class BookViewerPagePresenterImpl(
         settings.viewerConfigFlow()
             .onStart { emit(settings.getViewerConfig()) }
             .map { it?.balloonZoom ?: ViewerConfig.DEFAULT_BALLOON_ZOOM }
+            .distinctUntilChanged()
+
+    override val useSegmentationZoomFlow: Flow<Boolean> =
+        settings.viewerConfigFlow()
+            .onStart { emit(settings.getViewerConfig()) }
+            .map { it?.useSegmentationZoom ?: false }
             .distinctUntilChanged()
 
     /**
@@ -384,7 +395,7 @@ class BookViewerPagePresenterImpl(
         val obj = objects.getOrNull(pos) ?: return null
 
         return img.borrowedObject()
-            .let { SelectedPageObject(it.path, it.position, obj.bbox) }
+            .let { SelectedPageObject(it.path, it.position, obj.bbox, obj.polygon) }
     }
 
     companion object {
