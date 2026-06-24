@@ -24,7 +24,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import app.seeneva.reader.data.entity.*
+import app.seeneva.reader.data.source.local.db.converters.FloatArrayConverter
 import app.seeneva.reader.data.source.local.db.converters.InstantLongConverter
 import app.seeneva.reader.data.source.local.db.converters.UriStringConverter
 import app.seeneva.reader.data.source.local.db.dao.*
@@ -32,7 +35,7 @@ import app.seeneva.reader.data.source.local.db.entity.ComicPageObjectText
 import app.seeneva.reader.data.source.local.db.entity.TaggedComicBook
 import java.util.concurrent.Executor
 
-private const val DB_VERSION = 1
+private const val DB_VERSION = 2
 private const val DB_NAME = "reader_data.db"
 
 @Database(
@@ -50,7 +53,8 @@ private const val DB_NAME = "reader_data.db"
 )
 @TypeConverters(
     value = [UriStringConverter::class,
-        InstantLongConverter::class]
+        InstantLongConverter::class,
+        FloatArrayConverter::class]
 )
 internal abstract class ComicDatabase : RoomDatabase() {
     abstract fun comicBookSource(): ComicBookSource
@@ -70,6 +74,14 @@ internal abstract class ComicDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var dbInstance: ComicDatabase? = null
+
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE ${ComicPageObject.TABLE_NAME} ADD COLUMN ${ComicPageObject.COLUMN_POLYGON} TEXT DEFAULT NULL"
+                )
+            }
+        }
 
         /**
          * Get database instance
@@ -91,6 +103,7 @@ internal abstract class ComicDatabase : RoomDatabase() {
                             Room.inMemoryDatabaseBuilder(context, klass)
                         } else {
                             Room.databaseBuilder(context, klass, DB_NAME)
+                                .addMigrations(MIGRATION_1_2)
                         }.setQueryExecutor(queryExecutor).build()
                     }
                 }

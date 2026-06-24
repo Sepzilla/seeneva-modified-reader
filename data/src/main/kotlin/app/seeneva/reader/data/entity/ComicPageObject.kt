@@ -72,10 +72,12 @@ data class ComicPageObject(
     val yMax: Float,
     @ColumnInfo(name = COLUMN_X_MAX)
     @FloatRange(from = 0.0, to = 1.0)
-    val xMax: Float
+    val xMax: Float,
+    @ColumnInfo(name = COLUMN_POLYGON, defaultValue = "NULL")
+    val polygon: FloatArray? = null,
 ) {
     /**
-     * Called from a native side
+     * Called from native side via JNI descriptor "(JFFFFF[F)V"
      */
     @Suppress("unused")
     @Keep
@@ -86,17 +88,17 @@ data class ComicPageObject(
         yMin: Float,
         xMin: Float,
         yMax: Float,
-        xMax: Float
+        xMax: Float,
+        polygon: FloatArray?
     ) : this(
-        0,
-        0,
-        0,
+        0, 0, 0,
         classId,
         prob.coerceIn(.0f, 1.0f),
         yMin.coerceIn(.0f, 1.0f),
         xMin.coerceIn(.0f, 1.0f),
         yMax.coerceIn(.0f, 1.0f),
-        xMax.coerceIn(.0f, 1.0f)
+        xMax.coerceIn(.0f, 1.0f),
+        polygon
     )
 
     init {
@@ -123,6 +125,7 @@ data class ComicPageObject(
         internal const val COLUMN_X_MAX = "x_max"
         internal const val COLUMN_PROB = "probability"
         internal const val COLUMN_CLASS_ID = "class_id"
+        internal const val COLUMN_POLYGON = "polygon"
 
         internal const val INDEX_PAGE_ID = "idx_page_id"
     }
